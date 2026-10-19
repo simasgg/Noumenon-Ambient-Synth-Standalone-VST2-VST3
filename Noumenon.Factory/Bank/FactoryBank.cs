@@ -24,7 +24,6 @@ internal static partial class FactoryBank
 
     public static IReadOnlyList<Recipe> Recipes => [..Drones, ..Pads, ..Textures, ..Rhythms, ..Broken, ..Effects];
 
-    /// <summary>Writes every recipe into <paramref name="presetsFolder"/>; returns the files written.</summary>
     public static IReadOnlyList<string> Write(string presetsFolder, string? only = null)
     {
         var written = new List<string>();
@@ -44,7 +43,7 @@ internal static partial class FactoryBank
     }
 
     /// <summary>Auditions the presets, moving each one's Output Volume towards the target when <paramref name="level"/> is set; prints a table and returns false if any preset failed.</summary>
-    public static bool Check(IEnumerable<string> paths, bool level)
+    public static bool Check(IEnumerable<string> paths, string contentFolder, bool level)
     {
         var ok = true;
         var inv = CultureInfo.InvariantCulture;
@@ -53,7 +52,7 @@ internal static partial class FactoryBank
         {
             var state = PresetIo.Load(path);
             var kind = KindOf(state);
-            var result = Audition.Measure(state, kind);
+            var result = Audition.Measure(state, kind, contentFolder);
             var volume = state.Parameters.GetValueOrDefault(nameof(ParamId.OutputVolume), 0f);
             if (level && result.Finite && result.Lufs > -70.0)
             {
@@ -66,7 +65,7 @@ internal static partial class FactoryBank
 
                     volume = next;
                     state.Parameters[nameof(ParamId.OutputVolume)] = volume;
-                    result = Audition.Measure(state, kind);
+                    result = Audition.Measure(state, kind, contentFolder);
                 }
 
                 PresetIo.Save(state, path);

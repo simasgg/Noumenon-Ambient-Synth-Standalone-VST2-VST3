@@ -7,13 +7,15 @@ namespace Noumenon.Engine.Presets;
 /// (<c>presets</c>, one subfolder per family) and the samples (<c>samples</c>) — and how a
 /// snapshot names a factory sample so it loads on any machine and in any host.
 ///
-/// The folder is looked for up the tree from the given start folders, from where this assembly
-/// was loaded, from the application's base directory and from the working directory, so a build
-/// output finds the repository's content and a portable plugin folder finds the copy it carries;
-/// then where the installer put it, which it records in the registry
-/// (<c>SOFTWARE\Noumenon</c>, value <c>ContentFolder</c>, under HKLM for a machine-wide install,
-/// else HKCU). The installer keeps one copy for the standalone and both plugin formats, because
-/// the plugins sit in the shared VST folders, far from it.
+/// The folder is looked for up the tree from the given start folders and from where this assembly
+/// was loaded, so a build output finds the repository's content and a portable plugin folder the
+/// copy it carries; then where the installer put it, which it records in the registry
+/// (<c>SOFTWARE\Noumenon</c>, value <c>ContentFolder</c>; HKCU first, so a per-user or test
+/// install wins over a machine-wide one, then HKLM); only then up the tree from the application's
+/// base directory and the working directory. Those two belong to whoever runs the code — for a
+/// plugin, the DAW and its project — so an unrelated <c>content\presets</c> above them must not
+/// shadow the installed bank. The installer keeps one copy for the standalone and both plugin
+/// formats, because the plugins sit in the shared VST folders, far from it.
 ///
 /// A factory sample is referenced as <c>factory:samples/Name.wav</c>, relative to the content
 /// folder, instead of by its absolute path: the standalone, the VST2 and the VST3 plugin each see
@@ -36,25 +38,12 @@ public static class FactoryContent
 
     public static string? SamplesFolder => Root is { } folder ? Path.Combine(folder, "samples") : null;
 
-    /// <summary>The first <c>content</c> folder holding a <c>presets</c> folder, walking up from each start folder, then this assembly's, the base and the working directory; then the installed one; null when none exists.</summary>
+    /// <summary>The first <c>content</c> folder holding a <c>presets</c> folder, in the order the class describes; null when none exists.</summary>
     public static string? Locate(params string?[] startFolders)
     {
         var assemblyFolder = Path.GetDirectoryName(typeof(FactoryContent).Assembly.Location);
-        foreach (var start in startFolders.Concat([assemblyFolder, AppContext.BaseDirectory, Directory.GetCurrentDirectory()]))
-        {
-            if (string.IsNullOrEmpty(start))
-                continue;
 
-            var dir = new DirectoryInfo(start);
-            for (var depth = 0; depth < SearchDepth && dir is not null; depth++, dir = dir.Parent)
-            {
-                var candidate = Path.Combine(dir.FullName, "content");
-                if (Directory.Exists(Path.Combine(candidate, "presets")))
-                    return candidate;
-            }
-        }
-
-        return Installed();
+        return SearchUp([..startFolders, assemblyFolder]) ?? Installed() ?? SearchUp([AppContext.BaseDirectory, Directory.GetCurrentDirectory()]);
     }
 
     public static string? Installed()
@@ -62,7 +51,7 @@ public static class FactoryContent
         if (!OperatingSystem.IsWindows())
             return null;
 
-        foreach (var hive in new[] { Registry.LocalMachine, Registry.CurrentUser })
+        foreach (var hive in new[] { Registry.CurrentUser, Registry.LocalMachine })
         {
             try
             {
@@ -110,4 +99,23 @@ public static class FactoryContent
 
     /// <summary>The factory reference for a file under the content folder, e.g. <c>Sample("Wind.wav")</c> is <c>factory:samples/Wind.wav</c>.</summary>
     public static string Sample(string relativeToSamples) => Scheme + "samples/" + relativeToSamples.Replace('\\', '/');
+
+    private static string? SearchUp(string?[] folders)
+    {
+        foreach (var start in folders)
+        {
+            if (string.IsNullOrEmpty(start))
+                continue;
+
+            var dir = new DirectoryInfo(start);
+            for (var depth = 0; depth < SearchDepth && dir is not null; depth++, dir = dir.Parent)
+            {
+                var candidate = Path.Combine(dir.FullName, "content");
+                if (Directory.Exists(Path.Combine(candidate, "presets")))
+                    return candidate;
+            }
+        }
+
+        return null;
+    }
 }

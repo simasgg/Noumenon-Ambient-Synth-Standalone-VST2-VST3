@@ -10,7 +10,9 @@ namespace Noumenon.Engine.Samples;
 /// whatever thread calls <see cref="Load"/> — never the audio thread, which only ever does a volatile read of a slot
 /// reference at its control tick and crossfades to whatever it finds there. The standalone runs
 /// loads on a worker; the harness and tests call them inline. Unlike MF, adding a sample never
-/// rebuilds anything: a key is simply set or cleared.
+/// rebuilds anything: a key is simply set or cleared. Factory references resolve against
+/// <see cref="ContentFolder"/>, which a host sets to the folder its preset library found, so a
+/// preset and the samples it names always come from the same factory content.
 /// </summary>
 public sealed class SampleMap
 {
@@ -18,15 +20,18 @@ public sealed class SampleMap
 
     private readonly SampleSlot?[] slots = new SampleSlot?[KeyCount];
 
+    /// <summary>The factory content folder references resolve against; null means <see cref="FactoryContent.Root"/>. Set before loading, from the host's UI thread.</summary>
+    public string? ContentFolder { get; set; }
+
     /// <summary>The slot at a key, or null; safe to call from the audio thread.</summary>
     public SampleSlot? Get(int key) => (uint)key < KeyCount ? Volatile.Read(ref slots[key]) : null;
 
     /// <summary>Decodes a file onto a key. <paramref name="path"/> may be a factory reference; the slot keeps the portable form (<see cref="FactoryContent.ToReference"/>), which is what a snapshot saves.</summary>
     public SampleSlot Load(int key, string path, float gain = 1f, int rootNote = Tuning.MiddleC)
     {
-        var data = SampleDecoder.Decode(FactoryContent.Resolve(path));
+        var data = SampleDecoder.Decode(FactoryContent.Resolve(path, ContentFolder));
 
-        return Set(key, data, gain, rootNote, FactoryContent.ToReference(path));
+        return Set(key, data, gain, rootNote, FactoryContent.ToReference(path, ContentFolder));
     }
 
     /// <summary>Publishes decoded audio on a key, building its wavetable first (on the caller's thread, like the decoding).</summary>

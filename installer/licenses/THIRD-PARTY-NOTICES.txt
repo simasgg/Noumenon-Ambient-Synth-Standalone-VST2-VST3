@@ -15,7 +15,7 @@ following software, each under its own licence; the full texts are in this folde
 Installed when missing, by Microsoft's own installers and under their own terms:
 
   .NET 10 Desktop Runtime (x64)                   every part of Noumenon
-  Visual C++ 2015-2022 Redistributable (x64)      the VST2 plugins only
+  Visual C++ v14 Redistributable (x64)            the VST2 plugins only
 
 VST is a registered trademark of Steinberg Media Technologies GmbH, registered in Europe and
 other countries.

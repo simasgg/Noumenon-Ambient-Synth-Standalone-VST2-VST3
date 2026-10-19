@@ -147,7 +147,6 @@ internal static class ArtworkRenderer
         g.Restore(state);
     }
 
-    /// <summary>Draws <paramref name="text"/> centred on <paramref name="centreX"/> with <paramref name="spacing"/> pixels between the letters.</summary>
     private static void DrawSpaced(Graphics g, string text, Font font, Brush brush, float centreX, float top, float spacing)
     {
         var widths = text.Select(c => g.MeasureString(c.ToString(), font, PointF.Empty, StringFormat.GenericTypographic).Width).ToArray();

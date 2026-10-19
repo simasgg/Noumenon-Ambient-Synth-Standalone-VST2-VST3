@@ -49,7 +49,7 @@ Documents are left alone.
 `-Standalone-portable.zip`) hold the same files for a manual install; each carries its own copy of
 the factory content. With them you install the .NET 10 Desktop Runtime (x64) yourself from
 <https://dotnet.microsoft.com/download>, and for VST2 the
-[Visual C++ 2015–2022 Redistributable (x64)](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+[Visual C++ v14 Redistributable (x64)](https://aka.ms/vc14/vc_redist.x64.exe), version 14.50 or newer.
 
 ### Requirements
 

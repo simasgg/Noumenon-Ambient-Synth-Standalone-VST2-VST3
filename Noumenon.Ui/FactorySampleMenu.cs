@@ -9,14 +9,18 @@ namespace Noumenon.Ui;
 /// portable factory reference (<see cref="FactoryContent.Sample"/>) to the caller, which loads it
 /// through the host, off the UI thread, like any other file.
 /// </summary>
-public static class FactorySampleMenu
+internal static class FactorySampleMenu
 {
     private const string WavetableFolder = "wavetables";
 
-    /// <summary>The submenu, or null when there is no factory sample folder. <paramref name="load"/> gets the reference and whether it is a wavetable.</summary>
-    public static ToolStripMenuItem? Build(string caption, Action<string, bool> load)
+    /// <summary>The submenu over <paramref name="contentFolder"/> (null: <see cref="FactoryContent.Root"/>), or null when it has no samples. <paramref name="load"/> gets the reference and whether it is a wavetable.</summary>
+    public static ToolStripMenuItem? Build(string caption, string? contentFolder, Action<string, bool> load)
     {
-        if (FactoryContent.SamplesFolder is not { } folder || !Directory.Exists(folder))
+        if ((contentFolder ?? FactoryContent.Root) is not { } content)
+            return null;
+
+        var folder = Path.Combine(content, "samples");
+        if (!Directory.Exists(folder))
             return null;
 
         var menu = new ToolStripMenuItem(caption);

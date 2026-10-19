@@ -58,14 +58,14 @@ public sealed class PresetLibrary
     public bool IsFactory(string? path) => path is not null && FactoryFolder is not null && path.StartsWith(FactoryFolder, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>A path as given, or a preset name (or <c>Family/Name</c>) looked up in the factory bank then the user bank; null when neither has it.</summary>
-    public static string? Resolve(string nameOrPath, params string?[] startFolders)
+    public string? Find(string nameOrPath)
     {
         if (File.Exists(nameOrPath))
             return Path.GetFullPath(nameOrPath);
 
         var name = nameOrPath.EndsWith(PresetIo.Extension, StringComparison.OrdinalIgnoreCase) ? nameOrPath[..^PresetIo.Extension.Length] : nameOrPath;
         name = name.Replace('\\', '/');
-        foreach (var preset in new PresetLibrary(startFolders).All)
+        foreach (var preset in All)
         {
             if (string.Equals(preset.Name, name, StringComparison.OrdinalIgnoreCase) || string.Equals(preset.Family + "/" + preset.Name, name, StringComparison.OrdinalIgnoreCase))
                 return preset.Path;
@@ -73,4 +73,6 @@ public sealed class PresetLibrary
 
         return null;
     }
+
+    public static string? Resolve(string nameOrPath, params string?[] startFolders) => new PresetLibrary(startFolders).Find(nameOrPath);
 }

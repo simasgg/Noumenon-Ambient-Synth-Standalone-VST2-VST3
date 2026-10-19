@@ -34,6 +34,7 @@ public abstract class PluginSessionBase
     {
         Engine = new NoumenonEngine();
         Library = new PresetLibrary(assemblyFolder);
+        Engine.Samples.ContentFolder = Library.ContentFolder;
     }
 
     public NoumenonEngine Engine { get; }

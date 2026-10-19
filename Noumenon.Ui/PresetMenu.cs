@@ -8,7 +8,9 @@ namespace Noumenon.Ui;
 /// one is shown in — its factory family (Drone, Pad, …), nothing for the factory bank's root, and
 /// <c>User</c> for the user bank, with the user's own subfolders under it. The editor's preset
 /// menu is built from the pair: the ungrouped presets at the top, then one submenu per group,
-/// nested at every '/', with the current preset and the submenus leading to it checked.
+/// nested at every '/', with the current preset and the submenus leading to it checked. Where a
+/// single name stands alone, outside the menu, <see cref="Label"/> marks a factory preset with a
+/// star, since a user preset saved from it usually keeps its name.
 /// </summary>
 public static class PresetMenu
 {
@@ -22,7 +24,11 @@ public static class PresetMenu
         ..library.User.Select(preset => preset.Family.Length == 0 ? UserGroup : UserGroup + "/" + preset.Family),
     ];
 
-    /// <summary>Adds the presets to <paramref name="items"/>; <paramref name="pick"/> receives the chosen preset's index.</summary>
+    public static bool IsUser(string group) => group == UserGroup || group.StartsWith(UserGroup + "/", StringComparison.Ordinal);
+
+    public static string Label(string name, string group) => IsUser(group) ? name : "★ " + name;
+
+    /// <summary><paramref name="pick"/> receives the chosen preset's index.</summary>
     public static void Fill(ToolStripItemCollection items, IReadOnlyList<string> names, IReadOnlyList<string> groups, int current, Action<int> pick)
     {
         var grouped = new List<int>();

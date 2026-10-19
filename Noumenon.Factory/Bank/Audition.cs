@@ -30,9 +30,10 @@ internal static class Audition
 
     public sealed record Result(double Lufs, double PeakDb, double QuietestDb, double SwingLu, double CentroidHz, bool Finite);
 
-    public static Result Measure(PresetState state, AuditionKind kind, double seconds = 30.0)
+    public static Result Measure(PresetState state, AuditionKind kind, string contentFolder, double seconds = 30.0)
     {
         var engine = new NoumenonEngine();
+        engine.Samples.ContentFolder = contentFolder;
         var warnings = new List<string>();
         engine.ApplyPreset(state, loadSamples: true, warnings);
         if (warnings.Count > 0)
@@ -44,7 +45,7 @@ internal static class Audition
         var total = (int)(seconds * Rate);
         var left = new float[total];
         var right = new float[total];
-        var input = kind == AuditionKind.Input ? TestInput(total) : null;
+        var input = kind == AuditionKind.Input ? TestInput(total, contentFolder) : null;
         var notes = kind == AuditionKind.Notes ? Notes() : [];
         var next = 0;
         for (var pos = 0; pos < total; pos += Block)
@@ -76,11 +77,11 @@ internal static class Audition
         (22.0, 64, true),
     ];
 
-    private static float[] TestInput(int total)
+    private static float[] TestInput(int total, string contentFolder)
     {
         var buffer = new float[total];
         var sources = new[] { "Kalimba Run.wav", "Choir Breath.wav", "Rain.wav" }
-            .Select(name => FactoryContent.Resolve(FactoryContent.Sample(name)))
+            .Select(name => FactoryContent.Resolve(FactoryContent.Sample(name), contentFolder))
             .Where(File.Exists)
             .Select(SampleDecoder.Decode)
             .ToArray();

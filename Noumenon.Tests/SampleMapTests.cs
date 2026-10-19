@@ -190,4 +190,20 @@ public class SampleMapTests : IDisposable
         Assert.Equal("fake", slot.Name);
         Assert.Equal(22050, slot.Data.SampleRate);
     }
+    [Fact]
+    public void Factory_References_Resolve_Against_The_Map_Content_Folder()
+    {
+        var content = Path.Combine(dir, "content");
+        Directory.CreateDirectory(Path.Combine(content, "samples"));
+        var file = WriteWav(Path.Combine("content", "samples", "Tone.wav"), WaveFormat.CreateIeeeFloatWaveFormat(48000, 1), Tone(4800, 440f, 48000, 0.5f));
+        var map = new SampleMap { ContentFolder = content };
+
+        var byReference = map.Load(1, "factory:samples/Tone.wav");
+        var byPath = map.Load(2, file);
+
+        Assert.Equal("factory:samples/Tone.wav", byReference.Path);
+        Assert.Equal("factory:samples/Tone.wav", byPath.Path);
+        Assert.Equal(4800, byReference.Data.Length);
+        Assert.Throws<FileNotFoundException>(() => new SampleMap().Load(1, "factory:samples/Tone.wav"));
+    }
 }

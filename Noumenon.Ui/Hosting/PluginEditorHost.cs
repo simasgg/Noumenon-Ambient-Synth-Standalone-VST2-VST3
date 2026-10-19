@@ -189,7 +189,7 @@ public abstract partial class PluginEditorHost : IEditorHost
             LoadSampleFile(key, dialog.FileName);
     }
 
-    public void LoadSampleFile(int key, string path)
+    public void LoadSampleFile(int key, string path, bool asWavetable = false)
     {
         session.Notice($"Loading {Path.GetFileName(path)}…");
         var engine = session.Engine;
@@ -198,8 +198,8 @@ public abstract partial class PluginEditorHost : IEditorHost
             try
             {
                 var slot = engine.Samples.Load(key, path);
-                engine.Parameters.Set(ParamId.SamplerSelect, key);
-                session.Notice($"Loaded {slot.Name} on key {key}");
+                engine.Parameters.Set(asWavetable ? ParamId.WavetableKey : ParamId.SamplerSelect, key);
+                session.Notice($"Loaded {slot.Name} on key {key}{(asWavetable ? " as the wavetable" : "")}");
             }
             catch (Exception ex) when (ex is IOException or NotSupportedException or InvalidDataException or UnauthorizedAccessException)
             {

@@ -13,12 +13,16 @@
     <Copy SourceFiles="@(_DeployPdb)" DestinationFolder="$(OutDir)deploy" SkipUnchangedFiles="true" />
   </Target>
 
-  <!-- The factory presets ride along as deploy\content\presets, so the plugin finds them in an
-       installed layout as well as up the tree from the build output. -->
+  <!-- The factory content rides along as deploy\content, so a portable copy of the folder carries
+       its presets and samples. The copy is a mirror: a file that left content\ (a preset moved
+       into a family folder) is deleted from deploy\content too, or it would ship twice. -->
   <Target Name="CopyContentToDeploy" AfterTargets="DeployVstNet">
     <ItemGroup>
       <_FactoryContent Include="$(MSBuildThisFileDirectory)..\content\**\*" />
+      <_DeployedContent Include="$(OutDir)deploy\content\**\*" />
+      <_StaleContent Include="@(_DeployedContent)" Exclude="@(_FactoryContent->'$(OutDir)deploy\content\%(RecursiveDir)%(Filename)%(Extension)')" />
     </ItemGroup>
+    <Delete Files="@(_StaleContent)" />
     <Copy SourceFiles="@(_FactoryContent)" DestinationFiles="@(_FactoryContent->'$(OutDir)deploy\content\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
   </Target>
 

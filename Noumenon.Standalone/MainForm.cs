@@ -93,6 +93,7 @@ internal sealed class MainForm : Form, IEditorHost
     public MainForm(LaunchOptions options)
     {
         this.options = options;
+        engine.Samples.ContentFolder = library.ContentFolder;
         Text = "Noumenon";
         if (typeof(MainForm).Assembly.GetManifestResourceStream("Noumenon.ico") is { } iconStream)
         {
@@ -181,7 +182,7 @@ internal sealed class MainForm : Form, IEditorHost
             LoadSampleFile(key, dialog.FileName);
     }
 
-    public void LoadSampleFile(int key, string path)
+    public void LoadSampleFile(int key, string path, bool asWavetable = false)
     {
         Notice($"Loading {Path.GetFileName(path)}…");
         Task.Run(() => engine.Samples.Load(key, path)).ContinueWith(task =>
@@ -195,8 +196,8 @@ internal sealed class MainForm : Form, IEditorHost
                 return;
             }
 
-            engine.Parameters.Set(ParamId.SamplerSelect, key);
-            Notice($"Loaded {task.Result.Name} on key {key}");
+            engine.Parameters.Set(asWavetable ? ParamId.WavetableKey : ParamId.SamplerSelect, key);
+            Notice($"Loaded {task.Result.Name} on key {key}{(asWavetable ? " as the wavetable" : "")}");
         }, TaskScheduler.FromCurrentSynchronizationContext());
     }
 

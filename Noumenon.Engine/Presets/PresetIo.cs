@@ -51,8 +51,7 @@ public static class PresetIo
 
         return Directory.EnumerateFiles(folder, "*" + Extension, options)
             .Select(path => new PresetInfo(Path.GetFileNameWithoutExtension(path), path, FamilyOf(folder, path)))
-            .OrderBy(info => info.Family.Length > 0)
-            .ThenBy(info => info.Family, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(info => info.Family, StringComparer.OrdinalIgnoreCase)
             .ThenBy(info => info.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }

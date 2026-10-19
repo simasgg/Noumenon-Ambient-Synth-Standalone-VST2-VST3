@@ -20,7 +20,7 @@ internal static class PluginIdentity
     /// <summary>The first sidechain input (inputs 3 and 4 of the effect).</summary>
     public const int SidechainInput = 2;
 
-    /// <summary>The assembly's version (set in Directory.Build.props) in VST.NET's thousands notation: 1.1.0.0 is 1100.</summary>
+    /// <summary>The assembly's version (set in Directory.Build.props) in VST.NET's thousands notation: 1.1.0.0 is 1100. Minor, build and revision have one digit each; a larger one is held at 9 rather than spilling into the next digit (a test guards the project version).</summary>
     public static readonly int Version = ToVstVersion(typeof(PluginIdentity).Assembly.GetName().Version);
 
     public const int InstrumentId = ('N' << 24) | ('o' << 16) | ('u' << 8) | 'm';
@@ -45,5 +45,7 @@ internal static class PluginIdentity
 
     public static bool IsOurChunk(int pluginId) => pluginId == InstrumentId || pluginId == EffectId;
 
-    private static int ToVstVersion(Version? version) => version is null ? 0 : version.Major * 1000 + version.Minor * 100 + Math.Max(0, version.Build) * 10 + Math.Max(0, version.Revision);
+    public static int ToVstVersion(Version? version) => version is null ? 0 : version.Major * 1000 + Digit(version.Minor) * 100 + Digit(version.Build) * 10 + Digit(version.Revision);
+
+    private static int Digit(int component) => Math.Clamp(component, 0, 9);
 }

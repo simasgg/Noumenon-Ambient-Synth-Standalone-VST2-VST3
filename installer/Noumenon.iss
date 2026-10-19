@@ -19,21 +19,26 @@
 ;     hostfxr_initialize_for_runtime_config, which rejects self-contained configs (0x80008093), and
 ;     both it and NPlug's proxy find hostfxr through the machine-wide install registered under
 ;     HKLM\SOFTWARE\dotnet\Setup\InstalledVersions\x64 (32-bit registry view).
-;   * Visual C++ 2015-2022 Redistributable (x64) - only for the VST2 plugins: VST.NET's native
-;     bridge imports VCRUNTIME140.dll. The standalone and NPlug's statically linked VST3 proxy
-;     need nothing.
+;   * Visual C++ v14 Redistributable (x64) - only for the VST2 plugins: VST.NET's native bridge
+;     imports VCRUNTIME140.dll, and it is linked with a recent toolset, so any older 14.x runtime
+;     (VC++ 2015's, or a bare vcruntime140.dll another program dropped in System32) is not enough:
+;     the installed runtime must be at least the bundled redistributable's version, which the
+;     compiler reads from the file. The standalone and NPlug's statically linked VST3 proxy need
+;     nothing.
 ;
 ; Build it with build-release.ps1 in the repository root, which passes the defines below. Two
 ; more defines exist for testing: Sandbox=<folder> installs everything under that folder without
 ; elevation (the registry value goes to HKCU), and ForcePrerequisites runs the two redistributable
-; installers even when the machine has them (point RedistDir at stand-ins).
+; installers even when the machine has them (point RedistDir at stand-ins). The sandbox has an
+; AppId of its own and ignores the previous install folder, so it never meets a real
+; installation on the same machine.
 
 #define AppName       "Noumenon"
 #define AppPublisher  "Noumenon"
 #define AppUrl        "https://github.com/simasgg/Noumenon"
 
 #ifndef AppVersion
-  #define AppVersion  "1.0.0"
+  #define AppVersion  "0.5.0"
 #endif
 #ifndef StandaloneDir
   #define StandaloneDir "..\Noumenon.Standalone\bin\x64\Release\net10.0-windows\publish"
@@ -63,6 +68,18 @@
 #define DotNetExe     "windowsdesktop-runtime-win-x64.exe"
 #define VcRedistExe   "VC_redist.x64.exe"
 
+#ifdef IncludeVst2
+  #if Pos(":", RedistDir) == 0
+    #define VcRedistPath AddBackslash(SourcePath) + RedistDir + "\" + VcRedistExe
+  #else
+    #define VcRedistPath AddBackslash(RedistDir) + VcRedistExe
+  #endif
+  #define VcRedistVersion GetVersionNumbersString(VcRedistPath)
+  #if VcRedistVersion == ""
+    #error The bundled Visual C++ redistributable has no version number: check RedistDir.
+  #endif
+#endif
+
 #ifdef Sandbox
   #define ProgramRoot Sandbox + "\Program Files"
   #define CommonRoot  Sandbox + "\Common Files"
@@ -72,7 +89,11 @@
 #endif
 
 [Setup]
+#ifdef Sandbox
+AppId={{FAF926A4-1AAC-4C37-8FC4-D90DF27BA194}
+#else
 AppId={{353DF8FB-06C3-44D1-924E-78F739FF755A}
+#endif
 AppName={#AppName}
 AppVersion={#AppVersion}
 AppVerName={#AppName} {#AppVersion}
@@ -85,7 +106,11 @@ VersionInfoDescription={#AppName} installer - standalone, VST3 and VST2
 
 DefaultDirName={#ProgramRoot}\{#AppName}
 DefaultGroupName={#AppName}
+#ifdef Sandbox
+UsePreviousAppDir=no
+#else
 UsePreviousAppDir=yes
+#endif
 DisableProgramGroupPage=yes
 DisableReadyPage=no
 AllowNoIcons=yes
@@ -210,7 +235,9 @@ const
 
 { ---- prerequisite detection ------------------------------------------------------------ }
 
-{ True when a Microsoft.WindowsDesktop.App 10.x shared framework is under the given root. }
+{ True when a released Microsoft.WindowsDesktop.App 10.x shared framework is under the given
+  root. A prerelease one (10.0.0-rc.2...) does not count: hostfxr does not roll a release's
+  request forward onto a prerelease runtime. }
 function HasDesktopRuntime10(installRoot: String): Boolean;
 var
   frameworkDir: String;
@@ -228,7 +255,7 @@ begin
   begin
     try
       repeat
-        if (findRec.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0 then
+        if ((findRec.Attributes and FILE_ATTRIBUTE_DIRECTORY) <> 0) and (Pos('-', findRec.Name) = 0) then
         begin
           Result := True;
           exit;
@@ -256,29 +283,50 @@ begin
     Result := HasDesktopRuntime10(ExpandConstant('{commonpf64}\dotnet'));
 end;
 
-{ True when the VC++ 2015-2022 x64 runtime is present: the key the redistributable writes, in
-  both views, or the DLL in System32. }
-function IsVcRedistInstalled(): Boolean;
+{ The installed VC++ v14 x64 runtime's version, from the key its redistributable writes (in the
+  given registry view); False when there is none. }
+function InstalledVcRuntime(rootKey: Integer; var version: Int64): Boolean;
 var
-  installed: Cardinal;
+  installed, major, minor, build, rebuild: Cardinal;
+  key: String;
 begin
   Result := False;
+  key := 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64';
+  if not RegQueryDWordValue(rootKey, key, 'Installed', installed) then
+    exit;
+  if installed <> 1 then
+    exit;
+  if not RegQueryDWordValue(rootKey, key, 'Major', major) then
+    exit;
+  if not RegQueryDWordValue(rootKey, key, 'Minor', minor) then
+    exit;
+  if not RegQueryDWordValue(rootKey, key, 'Bld', build) then
+    exit;
+  if not RegQueryDWordValue(rootKey, key, 'Rbld', rebuild) then
+    rebuild := 0;
 
-  if RegQueryDWordValue(HKLM32, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', installed) then
-    if installed = 1 then
-    begin
-      Result := True;
-      exit;
-    end;
+  version := PackVersionComponents(major, minor, build, rebuild);
+  Result := True;
+end;
 
-  if RegQueryDWordValue(HKLM64, 'SOFTWARE\Microsoft\VisualStudio\14.0\VC\Runtimes\x64', 'Installed', installed) then
-    if installed = 1 then
-    begin
-      Result := True;
-      exit;
-    end;
+{ True when the installed VC++ v14 x64 runtime is at least the bundled redistributable's
+  version; a runtime the registry does not describe is installed anyway (the redistributable
+  itself reports a newer one as already there). }
+function IsVcRedistInstalled(): Boolean;
+var
+  installed, bundled: Int64;
+begin
+  Result := False;
+#ifdef IncludeVst2
+  if not StrToVersion('{#VcRedistVersion}', bundled) then
+    exit;
 
-  Result := FileExists(ExpandConstant('{sys}\vcruntime140.dll'));
+  if InstalledVcRuntime(HKLM32, installed) or InstalledVcRuntime(HKLM64, installed) then
+  begin
+    Log('Noumenon: VC++ x64 runtime ' + VersionToStr(installed) + ', bundled {#VcRedistVersion}');
+    Result := ComparePackedVersion(installed, bundled) >= 0;
+  end;
+#endif
 end;
 
 function NeedsVcRedist(): Boolean;

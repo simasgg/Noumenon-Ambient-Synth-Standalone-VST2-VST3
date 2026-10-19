@@ -21,6 +21,10 @@
     Output lands in dist\. The version comes from <Version> in Directory.Build.props, the single
     place it is set.
 
+.PARAMETER RefreshDownloads
+    Downloads the two redistributables again instead of using the copies cached in
+    installer\redist (after Microsoft ships a newer runtime).
+
 .PARAMETER NoVst2
     Leaves the VST2 plugins out of the installer and the zips: only the standalone and the VST3
     module ship.
@@ -38,6 +42,7 @@
 [CmdletBinding()]
 param(
     [switch]$SkipDownload,
+    [switch]$RefreshDownloads,
     [switch]$SkipTests,
     [switch]$SkipZip,
     [switch]$NoVst2,
@@ -67,9 +72,11 @@ $prerequisites = @(
     @{ Name = 'windowsdesktop-runtime-win-x64.exe'
        Url  = 'https://aka.ms/dotnet/10.0/windowsdesktop-runtime-win-x64.exe'
        What = '.NET 10 Desktop Runtime (x64)' },
+    # The v14 channel, not Visual Studio 2022's (aka.ms/vs/17 still serves 14.44): VST.NET's
+    # bridge is linked with the 14.5x toolset and needs a runtime at least that new.
     @{ Name = 'VC_redist.x64.exe'
-       Url  = 'https://aka.ms/vs/17/release/vc_redist.x64.exe'
-       What = 'Visual C++ 2015-2022 Redistributable (x64)' }
+       Url  = 'https://aka.ms/vc14/vc_redist.x64.exe'
+       What = 'Visual C++ v14 Redistributable (x64)' }
 )
 
 function Write-Step($message)
@@ -238,6 +245,13 @@ function Get-ReleaseNotes([string]$version)
             break
         }
     }
+    # An empty section, or a heading on the last line, has nothing to copy ($start..($end - 1)
+    # would count downwards and pull the headings in).
+    if ($start -ge $end)
+    {
+        Write-Warning "The CHANGELOG.md section for $version is empty."
+        return "Noumenon $version"
+    }
     return (($lines[$start..($end - 1)]) -join "`n").Trim()
 }
 
@@ -329,6 +343,10 @@ if (-not (Test-Path $redistDir))
 foreach ($prerequisite in $prerequisites)
 {
     $target = Join-Path $redistDir $prerequisite.Name
+    if ($RefreshDownloads -and (Test-Path $target))
+    {
+        Remove-Item $target -Force
+    }
     if (Test-Path $target)
     {
         Write-Host ("    cached   {0} ({1})" -f $prerequisite.Name, (Format-Size (Get-Item $target).Length))
@@ -361,6 +379,9 @@ if (-not (Test-Path $distDir))
 {
     New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 }
+# Whatever an earlier run left for this version goes, so the notes list only what this run made.
+Get-ChildItem $distDir -File | Where-Object { $_.Name -like "Noumenon-$version-*" -or $_.Name -eq "RELEASE-NOTES-$version.md" } | Remove-Item -Force
+$artifacts = @()
 
 $defines = @(
     "/DAppVersion=$version",
@@ -376,37 +397,44 @@ if ($includeVst2)
 {
     $defines += '/DIncludeVst2'
 }
+# The sign tool's name and its command travel together, and only to the real installer: the
+# sandboxed build for -TestInstall is never signed.
 $signArguments = @()
 if ($SignCommand)
 {
-    $defines += '/DSignTool=noumenon'
-    $signArguments += "/Snoumenon=$SignCommand"
+    $signArguments += '/DSignTool=noumenon', "/Snoumenon=$SignCommand"
 }
 
-Invoke-Checked 'ISCC' { & $iscc '/Q' @defines "/DOutputDir=$distDir" @signArguments $issFile }
+Invoke-Checked 'ISCC' { & $iscc '/Q' @defines @signArguments "/DOutputDir=$distDir" $issFile }
 
 $setupExe = Join-Path $distDir "Noumenon-$version-Setup.exe"
 Assert-File $setupExe 'The installer'
+$artifacts += $setupExe
 
 # --- 6. portable zips ---------------------------------------------------------------------------
 
 if (-not $SkipZip)
 {
     Write-Step 'Packing the portable zips'
-    New-Zip (Join-Path $distDir "Noumenon-$version-VST3-portable.zip") @{ 'Noumenon.vst3' = $vst3Bundle }
+    $zip = Join-Path $distDir "Noumenon-$version-VST3-portable.zip"
+    New-Zip $zip @{ 'Noumenon.vst3' = $vst3Bundle }
+    $artifacts += $zip
     if ($includeVst2)
     {
-        New-Zip (Join-Path $distDir "Noumenon-$version-VST2-portable.zip") @{ 'Noumenon VST2\Noumenon' = $vst2Deploy; 'Noumenon VST2\Noumenon FX' = $vst2FxDeploy }
+        $zip = Join-Path $distDir "Noumenon-$version-VST2-portable.zip"
+        New-Zip $zip @{ 'Noumenon VST2\Noumenon' = $vst2Deploy; 'Noumenon VST2\Noumenon FX' = $vst2FxDeploy }
+        $artifacts += $zip
     }
-    New-Zip (Join-Path $distDir "Noumenon-$version-Standalone-portable.zip") @{ 'Noumenon' = $standaloneOut; 'Noumenon\Content' = $contentDir; 'Noumenon\Licenses' = $licensesDir }
+    $zip = Join-Path $distDir "Noumenon-$version-Standalone-portable.zip"
+    New-Zip $zip @{ 'Noumenon' = $standaloneOut; 'Noumenon\Content' = $contentDir; 'Noumenon\Licenses' = $licensesDir }
+    $artifacts += $zip
 }
 
 # --- 7. release notes ---------------------------------------------------------------------------
 
 Write-Step 'Writing the release notes'
-$artifacts = Get-ChildItem $distDir -File | Where-Object { $_.Name -like "Noumenon-$version-*" -and $_.Extension -in '.exe', '.zip' } | Sort-Object Name
 $table = @('', '## Files', '', '| File | Size | SHA-256 |', '|---|---|---|')
-foreach ($artifact in $artifacts)
+foreach ($artifact in ($artifacts | ForEach-Object { Get-Item $_ } | Sort-Object Name))
 {
     $hash = (Get-FileHash $artifact.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     $table += "| ``$($artifact.Name)`` | $(Format-Size $artifact.Length) | ``$hash`` |"
@@ -472,6 +500,28 @@ if ($TestInstall)
     Write-Host ("    installed {0} files, {1}; content registered at {2}" -f $installedFiles.Count, (Format-Size ($installedFiles | Measure-Object -Property Length -Sum).Sum), $registered)
 
     Invoke-Checked 'Test-PluginLoad (installed)' { & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tools\Test-PluginLoad.ps1') -Dll ($plugins -join ';') }
+
+    # Each installed plugin's own engine, asked where its factory content is: with no content
+    # beside it, the answer must be the shared copy the registry names. Run from the sandbox, so
+    # the working directory cannot point at the repository's content.
+    $factoryTool = Join-Path $root 'Noumenon.Factory\bin\x64\Release\net10.0-windows\Noumenon.Factory.dll'
+    $pluginFolders = @(Join-Path $bundle 'Contents\x86_64-win')
+    if ($includeVst2)
+    {
+        $pluginFolders += (Join-Path $sandbox 'Common Files\VST2\Noumenon'), (Join-Path $sandbox 'Common Files\VST2\Noumenon FX')
+    }
+    Push-Location $sandbox
+    try
+    {
+        foreach ($folder in $pluginFolders)
+        {
+            Invoke-Checked "Factory content seen from $folder" { & $dotnet $factoryTool locate $folder --expect (Join-Path $app 'Content') }
+        }
+    }
+    finally
+    {
+        Pop-Location
+    }
 
     # The uninstaller copies itself to %TEMP% and returns at once; wait for the folder to go.
     Start-Process (Join-Path $app 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait

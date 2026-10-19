@@ -1,5 +1,6 @@
 using System.Drawing.Imaging;
 using Noumenon.Engine.Presets;
+using Noumenon.Factory;
 using Noumenon.Factory.Artwork;
 using Noumenon.Factory.Bank;
 using Noumenon.Factory.Samples;
@@ -11,8 +12,13 @@ using Noumenon.Factory.Samples;
 //     check                              audition every factory preset and report, writing nothing
 //     artwork                            draw the icon and the installer's images
 //     all                                samples, presets and artwork, in that order
+//     locate <plugin folder> [--expect <content folder>]
+//                                        where an installed plugin's engine finds its factory content (exit 1 if nowhere, or elsewhere)
 // The repository is found up the tree from the working directory (the folder holding Noumenon.slnx).
 var command = args.Length > 0 ? args[0].ToLowerInvariant() : "";
+if (command == "locate")
+    return args.Length is 2 or 4 && (args.Length == 2 || args[2].Equals("--expect", StringComparison.OrdinalIgnoreCase)) ? InstalledContentProbe.Run(args[1], args.Length == 4 ? args[3] : null) : Usage();
+
 string? only = null;
 var listOnly = false;
 for (var i = 1; i < args.Length; i++)
@@ -36,13 +42,14 @@ if (root is null)
 }
 
 var samples = Path.Combine(root, "content", "samples");
-var presets = Path.Combine(root, "content", "presets");
+var content = Path.Combine(root, "content");
+var presets = Path.Combine(content, "presets");
 
 return command switch
 {
     "samples" => listOnly ? Exit(SampleForge.List(samples, only)) : Exit(SampleForge.Render(samples, only)),
     "presets" => Exit(BuildPresets()),
-    "check" => Exit(FactoryBank.Check(PresetIo.Scan(presets).Select(preset => preset.Path), level: false)),
+    "check" => Exit(FactoryBank.Check(PresetIo.Scan(presets).Select(preset => preset.Path), content, level: false)),
     "artwork" => Exit(DrawArtwork()),
     "all" => Exit(SampleForge.Render(samples, null) && BuildPresets() && DrawArtwork()),
     _ => Usage(),
@@ -54,7 +61,7 @@ bool BuildPresets()
     Console.WriteLine($"Wrote {written.Count} recipe presets; levelling {(only is null ? "the whole bank" : only)} to {FactoryBank.TargetLufs} LUFS.");
     var targets = only is null ? PresetIo.Scan(presets).Select(preset => preset.Path).ToList() : written.ToList();
 
-    return FactoryBank.Check(targets, level: true);
+    return FactoryBank.Check(targets, content, level: true);
 }
 
 bool DrawArtwork()
@@ -103,7 +110,7 @@ static int Exit(bool ok) => ok ? 0 : 1;
 
 static int Usage()
 {
-    Console.Error.WriteLine("Usage: Noumenon.Factory samples [--only <name>] [--list] | presets [--only <name>] | check | artwork | all");
+    Console.Error.WriteLine("Usage: Noumenon.Factory samples [--only <name>] [--list] | presets [--only <name>] | check | artwork | all | locate <plugin folder> [--expect <content folder>]");
 
     return 2;
 }

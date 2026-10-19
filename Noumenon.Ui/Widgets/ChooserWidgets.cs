@@ -6,17 +6,20 @@ namespace Noumenon.Ui.Widgets;
 /// A readout that picks one entry from a list the host owns (the preset bank, for a morph target):
 /// click opens the list, the wheel steps through it. The pick is the panel's own state, not a
 /// parameter; it is kept by index and shown by name, and reads "choose…" until something is picked
-/// or when the list has shrunk past it.
+/// or when the list has shrunk past it. Given the entries' groups (<see cref="PresetMenu"/>), the
+/// list opens as the preset menu does — a submenu per family — and a factory pick is shown starred.
 /// </summary>
 public sealed class ListChoiceWidget : Widget
 {
     private readonly Func<IReadOnlyList<string>> entries;
+    private readonly Func<IReadOnlyList<string>>? groups;
     private readonly string? tooltip;
     private string shown = "";
 
-    public ListChoiceWidget(Func<IReadOnlyList<string>> entries, float x, float y, float width, float height, string? tooltip = null)
+    public ListChoiceWidget(Func<IReadOnlyList<string>> entries, float x, float y, float width, float height, string? tooltip = null, Func<IReadOnlyList<string>>? groups = null)
     {
         this.entries = entries;
+        this.groups = groups;
         this.tooltip = tooltip;
         Bounds = new RectangleF(x, y, width, height);
     }
@@ -31,7 +34,12 @@ public sealed class ListChoiceWidget : Widget
         get
         {
             var list = entries();
-            return Selected >= 0 && Selected < list.Count ? list[Selected] : "choose…";
+            if (Selected < 0 || Selected >= list.Count)
+                return "choose…";
+
+            var listGroups = groups?.Invoke();
+
+            return listGroups is not null && Selected < listGroups.Count ? PresetMenu.Label(list[Selected], listGroups[Selected]) : list[Selected];
         }
     }
 
@@ -63,18 +71,11 @@ public sealed class ListChoiceWidget : Widget
             return;
 
         var menu = new ContextMenuStrip { ShowCheckMargin = true, ShowImageMargin = false };
-        for (var i = 0; i < list.Count; i++)
+        PresetMenu.Fill(menu.Items, list, groups?.Invoke() ?? [], Selected, index =>
         {
-            var index = i;
-            var item = new ToolStripMenuItem(list[i]) { Checked = index == Selected };
-            item.Click += (_, _) =>
-            {
-                Selected = index;
-                Invalidate();
-            };
-            menu.Items.Add(item);
-        }
-
+            Selected = index;
+            Invalidate();
+        });
         ShowMenu(menu, new PointF(Bounds.X, Bounds.Bottom));
     }
 

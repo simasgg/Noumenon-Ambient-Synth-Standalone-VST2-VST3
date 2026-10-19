@@ -70,6 +70,21 @@ public class PluginTests
     }
 
     [Fact]
+    public void The_Product_Version_Is_The_Project_Version_In_Thousands_Notation()
+    {
+        var version = typeof(PluginIdentity).Assembly.GetName().Version!;
+
+        // VST.NET's notation gives minor, build and revision one digit each: a version that needs
+        // more cannot be told apart from its neighbours by a host, so a bump like that must pick a scheme first.
+        Assert.InRange(version.Minor, 0, 9);
+        Assert.InRange(version.Build, 0, 9);
+        Assert.InRange(Math.Max(0, version.Revision), 0, 9);
+        Assert.Equal(version.Major * 1000 + version.Minor * 100 + version.Build * 10 + Math.Max(0, version.Revision), PluginIdentity.Version);
+        Assert.Equal(1100, PluginIdentity.ToVstVersion(new Version(1, 1, 0)));
+        Assert.Equal(1990, PluginIdentity.ToVstVersion(new Version(1, 12, 10)));
+    }
+
+    [Fact]
     public void Host_Writes_Reach_The_Bank_At_The_Next_Block_And_Are_Not_Echoed()
     {
         var plugin = Open();

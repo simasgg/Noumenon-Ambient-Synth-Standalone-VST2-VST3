@@ -1,6 +1,7 @@
 using Noumenon.Dsp.Sampler;
 using Noumenon.Engine;
 using Noumenon.Engine.Parameters;
+using Noumenon.Engine.Samples;
 
 namespace Noumenon.Ui.Widgets;
 
@@ -8,7 +9,7 @@ namespace Noumenon.Ui.Widgets;
 /// The sampler's display: the selected key's waveform with the loop range as two handles, the
 /// play head, and the file's name. Drag a handle to move a loop point, drag the region to shift
 /// the whole loop, double-click (or drop a file on it) to load a sample into the selected key,
-/// right-click for load, clear, loop reset, retrigger and "use as wavetable". The other modes show
+/// right-click for load, a factory sample, clear, loop reset, retrigger and "use as wavetable". The other modes show
 /// how they read: Granular draws every sounding grain as a tick (taller while its window is open)
 /// around the grains' centre, Stretch shades the window being analysed around its playhead. Peaks
 /// are computed once per sample and kept until the sample changes.
@@ -17,6 +18,7 @@ public sealed class WaveformWidget : Widget, IFileDropTarget
 {
     private const float HandleGrab = 5f;
     private const float MinLoop = 0.01f;
+    private const int FirstWavetableKey = 10;
 
     private enum DragMode
     {
@@ -218,7 +220,7 @@ public sealed class WaveformWidget : Widget, IFileDropTarget
         var menu = new ContextMenuStrip();
         var key = Key;
         menu.Items.Add($"Load sample into key {key}…", null, (_, _) => host.LoadSample(key));
-        if (FactorySampleMenu.Build("Factory sample", (reference, wavetable) => LoadFactorySample(key, reference, wavetable)) is { } factory)
+        if (FactorySampleMenu.Build("Factory sample", engine.Samples.ContentFolder, (reference, wavetable) => LoadFactorySample(key, reference, wavetable)) is { } factory)
             menu.Items.Add(factory);
 
         menu.Items.Add("Clear key", null, (_, _) => engine.Samples.Clear(key));
@@ -234,12 +236,31 @@ public sealed class WaveformWidget : Widget, IFileDropTarget
         return menu;
     }
 
-    /// <summary>A factory wavetable also becomes the oscillators' wavetable, since that is what it is for.</summary>
+    /// <summary>A factory sample replaces this key's; a factory wavetable goes onto a key of its own, never the one the sampler plays, and becomes the oscillators' wavetable once it has loaded.</summary>
     private void LoadFactorySample(int key, string reference, bool wavetable)
     {
-        host.LoadSampleFile(key, reference);
         if (wavetable)
-            Commit(() => engine.Parameters.Set(ParamId.WavetableKey, key));
+            host.LoadSampleFile(WavetableTarget(), reference, asWavetable: true);
+        else
+            host.LoadSampleFile(key, reference);
+    }
+
+    /// <summary>The wavetable key when the sampler is not playing it; otherwise the first empty key from <see cref="FirstWavetableKey"/> up, where the factory presets keep theirs.</summary>
+    private int WavetableTarget()
+    {
+        var sampler = engine.Parameters.GetInt(ParamId.SamplerSelect);
+        var current = engine.Parameters.GetInt(ParamId.WavetableKey);
+        if (current != sampler)
+            return current;
+
+        for (var i = 0; i < SampleMap.KeyCount; i++)
+        {
+            var candidate = (FirstWavetableKey + i) % SampleMap.KeyCount;
+            if (candidate != sampler && engine.Samples.Get(candidate) is null)
+                return candidate;
+        }
+
+        return (sampler + 1) % SampleMap.KeyCount;
     }
 
     private void DrawMode(Graphics g, RectangleF inner, SampleData data)

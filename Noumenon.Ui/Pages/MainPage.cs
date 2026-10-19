@@ -272,7 +272,7 @@ internal static class MainPage
         // Snapshot morph: pick a preset, a time, go — every parameter glides there; lanes and samples stay.
         var y = t + 92;
         w.Add(new LabelWidget("MORPH", 456, y, 34, 14, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
-        var target = new ListChoiceWidget(() => host.PresetNames, 490, y, 132, 14, "The preset to morph to: every parameter glides there over the time beside it; lanes and samples stay");
+        var target = new ListChoiceWidget(() => host.PresetNames, 490, y, 132, 14, "The preset to morph to: every parameter glides there over the time beside it; lanes and samples stay", () => host.PresetGroups);
         w.Add(target);
         w.Add(new ValueBoxWidget(() => morphSeconds, value => morphSeconds = value, 0.5f, 120f, 8f, "0.#", " s", 626, y, 40, 14, "Morph time: drag or wheel, double-click for 8 s"));
         w.Add(new TextButtonWidget("GO", 670, y, 32, 14, () => StartMorph(host, target.Selected), () => engine.IsMorphing, "Start the morph (lit while it runs)"));

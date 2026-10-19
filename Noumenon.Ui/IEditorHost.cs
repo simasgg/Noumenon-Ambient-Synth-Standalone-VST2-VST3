@@ -32,7 +32,8 @@ public interface IEditorHost
 
     void LoadSample(int key);
 
-    void LoadSampleFile(int key, string path);
+    /// <summary>Decodes a file onto a key off the UI thread; once it has loaded, the key becomes the sampler's (or, with <paramref name="asWavetable"/>, the oscillators' wavetable), so a failed load changes nothing.</summary>
+    void LoadSampleFile(int key, string path, bool asWavetable = false);
 
     /// <summary>Shows a line in the status area for a few seconds.</summary>
     void Notice(string text);

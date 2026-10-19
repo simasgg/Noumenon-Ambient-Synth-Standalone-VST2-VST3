@@ -131,9 +131,13 @@ if (dumpParams)
 var engine = new NoumenonEngine();
 var bank = engine.Parameters;
 
+// One factory content folder for the presets and the samples they name: the one the library finds from here.
+var library = new PresetLibrary(Directory.GetCurrentDirectory());
+engine.Samples.ContentFolder = library.ContentFolder;
+
 if (presetPath is not null)
 {
-    var resolvedPath = PresetLibrary.Resolve(presetPath, Directory.GetCurrentDirectory());
+    var resolvedPath = library.Find(presetPath);
     if (resolvedPath is null)
     {
         Console.WriteLine($"Preset '{presetPath}' not found (looked for a file, then for that name in the factory bank, families included, and the user bank).");
