@@ -80,6 +80,7 @@ internal sealed class MainForm : Form, IEditorHost
     private string? currentPresetPath;
     private string currentPresetName = "Init";
     private IReadOnlyList<string> presetNames = [];
+    private IReadOnlyList<string> presetGroups = [];
     private int polls;
     private float meterL;
     private float meterR;
@@ -93,6 +94,14 @@ internal sealed class MainForm : Form, IEditorHost
     {
         this.options = options;
         Text = "Noumenon";
+        if (typeof(MainForm).Assembly.GetManifestResourceStream("Noumenon.ico") is { } iconStream)
+        {
+            using (iconStream)
+            {
+                Icon = new Icon(iconStream);
+            }
+        }
+
         StartPosition = FormStartPosition.CenterScreen;
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
@@ -127,6 +136,8 @@ internal sealed class MainForm : Form, IEditorHost
     // ---- IEditorHost ----
 
     public IReadOnlyList<string> PresetNames => presetNames;
+
+    public IReadOnlyList<string> PresetGroups => presetGroups;
 
     public int CurrentPresetIndex => library.IndexOf(currentPresetPath);
 
@@ -458,6 +469,8 @@ internal sealed class MainForm : Form, IEditorHost
             RefreshPresetNames();
         }));
         presets.DropDownItems.Add(Item("Open &User Preset Folder", Keys.None, () => OpenFolder(library.UserFolder)));
+        if (library.ContentFolder is { } content)
+            presets.DropDownItems.Add(Item("Open &Factory Content Folder", Keys.None, () => OpenFolder(content)));
 
         var view = new ToolStripMenuItem("&View");
         foreach (var scale in EditorScales)
@@ -812,7 +825,11 @@ internal sealed class MainForm : Form, IEditorHost
 
     // ---- Presets ----
 
-    private void RefreshPresetNames() => presetNames = library.All.Select(preset => (library.Factory.Contains(preset) ? "★ " : "") + preset.Name).ToArray();
+    private void RefreshPresetNames()
+    {
+        presetNames = PresetMenu.Names(library);
+        presetGroups = PresetMenu.Groups(library);
+    }
 
     private void StepPreset(int step)
     {

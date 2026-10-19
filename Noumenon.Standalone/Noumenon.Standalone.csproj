@@ -18,12 +18,18 @@
     <ServerGarbageCollection>false</ServerGarbageCollection>
     <TieredPGO>true</TieredPGO>
 
-    <!-- Product metadata; the single place the displayed version is set. -->
-    <Version>0.1.0</Version>
+    <!-- Product metadata; the version comes from Directory.Build.props. -->
     <Authors>Noumenon</Authors>
     <Product>Noumenon</Product>
     <Description>Noumenon - a generative ambient loop instrument.</Description>
+
+    <!-- Drawn by Noumenon.Factory (artwork); the window loads the embedded copy, the shell the exe's. -->
+    <ApplicationIcon>Noumenon.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Noumenon.ico" LogicalName="Noumenon.ico" />
+  </ItemGroup>
 
   <ItemGroup>
     <!-- Output and capture devices (WASAPI shared/exclusive, endpoint enumeration), ASIO drivers,

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Builds the factory content: the samples (synthesized), the preset bank (recipes, levelled
+         to one loudness) and the artwork (the icon and the installer's images). A developer
+         tool, not shipped; its output is committed under content/, installer/ and the standalone.
+         It uses the editor's theme for the artwork, so it is a Windows x64 project too. -->
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Platforms>x64</Platforms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Noumenon.Factory</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Noumenon.Dsp\Noumenon.Dsp.csproj" />
+    <ProjectReference Include="..\Noumenon.Engine\Noumenon.Engine.csproj" />
+    <ProjectReference Include="..\Noumenon.Ui\Noumenon.Ui.csproj" />
+  </ItemGroup>
+
+</Project>

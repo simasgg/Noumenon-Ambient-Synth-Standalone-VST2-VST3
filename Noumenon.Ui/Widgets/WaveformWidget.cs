@@ -218,6 +218,9 @@ public sealed class WaveformWidget : Widget, IFileDropTarget
         var menu = new ContextMenuStrip();
         var key = Key;
         menu.Items.Add($"Load sample into key {key}…", null, (_, _) => host.LoadSample(key));
+        if (FactorySampleMenu.Build("Factory sample", (reference, wavetable) => LoadFactorySample(key, reference, wavetable)) is { } factory)
+            menu.Items.Add(factory);
+
         menu.Items.Add("Clear key", null, (_, _) => engine.Samples.Clear(key));
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Reset loop to the whole sample", null, (_, _) => Commit(() =>
@@ -229,6 +232,14 @@ public sealed class WaveformWidget : Widget, IFileDropTarget
         menu.Items.Add($"Use key {key} as the wavetable", null, (_, _) => Commit(() => engine.Parameters.Set(ParamId.WavetableKey, key)));
 
         return menu;
+    }
+
+    /// <summary>A factory wavetable also becomes the oscillators' wavetable, since that is what it is for.</summary>
+    private void LoadFactorySample(int key, string reference, bool wavetable)
+    {
+        host.LoadSampleFile(key, reference);
+        if (wavetable)
+            Commit(() => engine.Parameters.Set(ParamId.WavetableKey, key));
     }
 
     private void DrawMode(Graphics g, RectangleF inner, SampleData data)

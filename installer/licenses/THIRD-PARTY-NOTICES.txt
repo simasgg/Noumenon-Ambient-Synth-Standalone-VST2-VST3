@@ -1,0 +1,21 @@
+Noumenon - third-party software
+===============================
+
+Noumenon's DSP, editor, presets and samples are its own. It is built on, or ships with, the
+following software, each under its own licence; the full texts are in this folder.
+
+  Component                               Licence         Used by                     Text
+  --------------------------------------  --------------  --------------------------  ------------
+  NAudio 2.2.1                            MIT             standalone, sample loading  NAudio.txt
+  NPlug 0.5.0.380, NPlug.Proxy 2.0.1      BSD-2-Clause    VST3 plugin                 NPlug.txt
+  VST 3 SDK 3.8 (Steinberg)               MIT             VST3 plugin (via NPlug)     VST3-SDK.txt
+  VST.NET 2.1.10                          LGPL-2.1-only   VST2 plugins                VST.NET.txt
+  .NET libraries (Microsoft.Extensions.*) MIT             VST2 plugins (via VST.NET)  dotnet.txt
+
+Installed when missing, by Microsoft's own installers and under their own terms:
+
+  .NET 10 Desktop Runtime (x64)                   every part of Noumenon
+  Visual C++ 2015-2022 Redistributable (x64)      the VST2 plugins only
+
+VST is a registered trademark of Steinberg Media Technologies GmbH, registered in Europe and
+other countries.

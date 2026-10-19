@@ -20,6 +20,9 @@
     <Platform Solution="*|x64" Project="x64" />
   </Project>
   <Project Path="Noumenon.TestHarness/Noumenon.TestHarness.csproj" />
+  <Project Path="Noumenon.Factory/Noumenon.Factory.csproj">
+    <Platform Solution="*|x64" Project="x64" />
+  </Project>
   <Project Path="Noumenon.Tests/Noumenon.Tests.csproj" />
   <Project Path="Noumenon.Vst2.Tests/Noumenon.Vst2.Tests.csproj">
     <Platform Solution="*|x64" Project="x64" />

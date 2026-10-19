@@ -1,5 +1,6 @@
 using Noumenon.Dsp.Sampler;
 using Noumenon.Dsp.Shared;
+using Noumenon.Engine.Presets;
 
 namespace Noumenon.Engine.Samples;
 
@@ -20,11 +21,12 @@ public sealed class SampleMap
     /// <summary>The slot at a key, or null; safe to call from the audio thread.</summary>
     public SampleSlot? Get(int key) => (uint)key < KeyCount ? Volatile.Read(ref slots[key]) : null;
 
+    /// <summary>Decodes a file onto a key. <paramref name="path"/> may be a factory reference; the slot keeps the portable form (<see cref="FactoryContent.ToReference"/>), which is what a snapshot saves.</summary>
     public SampleSlot Load(int key, string path, float gain = 1f, int rootNote = Tuning.MiddleC)
     {
-        var data = SampleDecoder.Decode(path);
+        var data = SampleDecoder.Decode(FactoryContent.Resolve(path));
 
-        return Set(key, data, gain, rootNote, path);
+        return Set(key, data, gain, rootNote, FactoryContent.ToReference(path));
     }
 
     /// <summary>Publishes decoded audio on a key, building its wavetable first (on the caller's thread, like the decoding).</summary>

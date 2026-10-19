@@ -19,7 +19,7 @@ namespace Noumenon.Vst3;
 internal static class PluginIdentity
 {
     public const string Vendor = "Noumenon";
-    public const string Url = "";
+    public const string Url = "https://github.com/simasgg/Noumenon";
     public const string Email = "";
     public const string InstrumentName = "Noumenon";
     public const string EffectName = "Noumenon FX";
@@ -34,7 +34,8 @@ internal static class PluginIdentity
     public const int AftertouchController = 128;
     public const int PitchBendController = 129;
 
-    public static readonly Version Version = new(0, 1, 0);
+    /// <summary>The assembly's version (set in Directory.Build.props) as major.minor.build.</summary>
+    public static readonly Version Version = typeof(PluginIdentity).Assembly.GetName().Version is { } version ? new(version.Major, version.Minor, Math.Max(0, version.Build)) : new(1, 0, 0);
 
     public static readonly Guid InstrumentClassId = new("2968021f-fbe2-4d49-8fd1-1b6820fcad3d");
     public static readonly Guid EffectClassId = new("97b9a08b-f53e-4a95-b403-77164727b89e");

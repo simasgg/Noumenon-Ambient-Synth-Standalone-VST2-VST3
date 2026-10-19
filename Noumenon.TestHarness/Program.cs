@@ -11,7 +11,7 @@ using Noumenon.TestHarness;
 //     --seconds <n>        length to render (default 10)
 //     --rate <hz>          sample rate (default 48000)
 //     --block <n>          block size the render is cut into (default 512)
-//     --preset <path|name> load a .noumenon preset (a bare name is looked up in content/presets)
+//     --preset <path|name> load a .noumenon preset (a bare name or Family/Name is looked up in the banks)
 //     --seed <n>           randomize from this seed (default: no randomization)
 //     --scope <name>       what --seed randomizes: All, Oscillators, Sampler, Effects, Lanes (default All)
 //     --amount <0..1>      how far the randomizer strays from a tonal drone (default 1)
@@ -133,10 +133,10 @@ var bank = engine.Parameters;
 
 if (presetPath is not null)
 {
-    var resolvedPath = FindPreset(presetPath);
+    var resolvedPath = PresetLibrary.Resolve(presetPath, Directory.GetCurrentDirectory());
     if (resolvedPath is null)
     {
-        Console.WriteLine($"Preset '{presetPath}' not found (looked for a file and for content/presets/{presetPath}{PresetIo.Extension}).");
+        Console.WriteLine($"Preset '{presetPath}' not found (looked for a file, then for that name in the factory bank, families included, and the user bank).");
         return 1;
     }
 
@@ -303,26 +303,6 @@ Console.WriteLine($"Output: {outputPath}  ({total} frames @ {sampleRate} Hz, {se
 return 0;
 
 static bool Is(string arg, string name) => arg.Equals(name, StringComparison.OrdinalIgnoreCase);
-
-static string? FindPreset(string nameOrPath)
-{
-    if (File.Exists(nameOrPath))
-        return Path.GetFullPath(nameOrPath);
-
-    var fileName = nameOrPath.EndsWith(PresetIo.Extension, StringComparison.OrdinalIgnoreCase) ? nameOrPath : nameOrPath + PresetIo.Extension;
-    foreach (var start in new[] { Directory.GetCurrentDirectory(), AppContext.BaseDirectory })
-    {
-        var dir = new DirectoryInfo(start);
-        for (var depth = 0; depth < 6 && dir is not null; depth++, dir = dir.Parent)
-        {
-            var candidate = Path.Combine(dir.FullName, "content", "presets", fileName);
-            if (File.Exists(candidate))
-                return candidate;
-        }
-    }
-
-    return null;
-}
 
 static List<(long Frame, Action<MidiInput> Apply)> ReadMidi(string path, int sampleRate)
 {

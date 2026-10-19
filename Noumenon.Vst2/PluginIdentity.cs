@@ -20,8 +20,8 @@ internal static class PluginIdentity
     /// <summary>The first sidechain input (inputs 3 and 4 of the effect).</summary>
     public const int SidechainInput = 2;
 
-    /// <summary>In VST.NET's thousands notation (1100 = 1.1.0.0); 0.1.0 is 100.</summary>
-    public const int Version = 100;
+    /// <summary>The assembly's version (set in Directory.Build.props) in VST.NET's thousands notation: 1.1.0.0 is 1100.</summary>
+    public static readonly int Version = ToVstVersion(typeof(PluginIdentity).Assembly.GetName().Version);
 
     public const int InstrumentId = ('N' << 24) | ('o' << 16) | ('u' << 8) | 'm';
     public const int EffectId = ('N' << 24) | ('o' << 16) | ('u' << 8) | 'F';
@@ -44,4 +44,6 @@ internal static class PluginIdentity
     public const VstPluginFlags SynthFlag = IsEffect ? VstPluginFlags.None : VstPluginFlags.IsSynth;
 
     public static bool IsOurChunk(int pluginId) => pluginId == InstrumentId || pluginId == EffectId;
+
+    private static int ToVstVersion(Version? version) => version is null ? 0 : version.Major * 1000 + version.Minor * 100 + Math.Max(0, version.Build) * 10 + Math.Max(0, version.Revision);
 }

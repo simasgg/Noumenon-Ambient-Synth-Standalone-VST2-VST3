@@ -1,6 +1,7 @@
 {
   "Version": 1,
   "Name": "Living Faders",
+  "Description": "Twenty faders playing loops of their own lengths - levels, pitches, cutoffs - so the drone never lines up the same way twice.",
   "Parameters": {
     "OscA1On": 1,
     "OscA1Wave": 0,
@@ -236,7 +237,7 @@
     "ReverbFreeze": 0,
     "ReverbSize": 0.5845753,
     "ReverbDamping": 0.617819,
-    "OutputVolume": 0,
+    "OutputVolume": -5.8,
     "OutputWidth": 1,
     "ScopePhaseX": 0,
     "ScopePhaseY": 5,
@@ -327,7 +328,34 @@
     "ModSlot11Depth": 0,
     "ModSlot12Source": 0,
     "ModSlot12Target": 0,
-    "ModSlot12Depth": 0
+    "ModSlot12Depth": 0,
+    "Pause": 0,
+    "PauseFade": 0,
+    "ScopeMode": 0,
+    "GrainPitchSpread": 0,
+    "GrainWindow": 0,
+    "GrainScan": 0,
+    "GrainWidth": 0.5,
+    "StretchWindow": 2,
+    "WavetableKey": 0,
+    "EnvFollowerSource": 0,
+    "EnvFollowerGain": 0,
+    "MatrixCc": 74,
+    "ChordSeqOn": 0,
+    "ChordSeqSteps": 4,
+    "ChordSeqStepTime": 8,
+    "ChordSeqType": 0,
+    "ChordSeqVoicing": 1,
+    "ChordSeqOctave": 3,
+    "ChordSeqRoot": 0,
+    "ChordSeqStep1": 1,
+    "ChordSeqStep2": 6,
+    "ChordSeqStep3": 4,
+    "ChordSeqStep4": 5,
+    "ChordSeqStep5": 1,
+    "ChordSeqStep6": 3,
+    "ChordSeqStep7": 4,
+    "ChordSeqStep8": 5
   },
   "Lanes": [
     {
@@ -24474,5 +24502,6 @@
   ],
   "Samples": [],
   "Seed": 12,
-  "Locked": []
+  "Locked": [],
+  "MidiMap": []
 }

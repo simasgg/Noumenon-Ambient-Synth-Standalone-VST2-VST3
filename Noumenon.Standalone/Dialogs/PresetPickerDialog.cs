@@ -20,7 +20,7 @@ internal sealed class PresetPickerDialog : Form
         ClientSize = new Size(360, 420);
 
         foreach (var preset in presets)
-            list.Items.Add(preset.Name);
+            list.Items.Add(preset.Family.Length == 0 ? preset.Name : $"{preset.Family} / {preset.Name}");
 
         if (list.Items.Count > 0)
             list.SelectedIndex = 0;

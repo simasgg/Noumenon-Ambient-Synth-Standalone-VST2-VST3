@@ -508,6 +508,7 @@ noumenon_*.wav
 /installer/redist/
 
 # Working notes stay local: the plan, the Claude Code guidance and the docs/ checklists are not
-# published. A README is the one Markdown file that belongs in the remote.
+# published. The README and the changelog (the release notes come from it) belong in the remote.
 *.md
 !README.md
+!CHANGELOG.md

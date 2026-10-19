@@ -1,6 +1,7 @@
 {
   "Version": 1,
   "Name": "Init",
+  "Description": "The patch Noumenon opens with: the panel\u0027s original layout of sines, a triangle, pulses and noise in two sections, summed and ring-modulated through the default chain. A blank page.",
   "Parameters": {
     "OscA1On": 1,
     "OscA1Wave": 0,
@@ -236,7 +237,7 @@
     "ReverbFreeze": 0,
     "ReverbSize": 0.7,
     "ReverbDamping": 0.4,
-    "OutputVolume": 0,
+    "OutputVolume": -0.5,
     "OutputWidth": 1,
     "ScopePhaseX": 0,
     "ScopePhaseY": 5,
@@ -327,7 +328,34 @@
     "ModSlot11Depth": 0,
     "ModSlot12Source": 0,
     "ModSlot12Target": 0,
-    "ModSlot12Depth": 0
+    "ModSlot12Depth": 0,
+    "Pause": 0,
+    "PauseFade": 0,
+    "ScopeMode": 0,
+    "GrainPitchSpread": 0,
+    "GrainWindow": 0,
+    "GrainScan": 0,
+    "GrainWidth": 0.5,
+    "StretchWindow": 2,
+    "WavetableKey": 0,
+    "EnvFollowerSource": 0,
+    "EnvFollowerGain": 0,
+    "MatrixCc": 74,
+    "ChordSeqOn": 0,
+    "ChordSeqSteps": 4,
+    "ChordSeqStepTime": 8,
+    "ChordSeqType": 0,
+    "ChordSeqVoicing": 1,
+    "ChordSeqOctave": 3,
+    "ChordSeqRoot": 0,
+    "ChordSeqStep1": 1,
+    "ChordSeqStep2": 6,
+    "ChordSeqStep3": 4,
+    "ChordSeqStep4": 5,
+    "ChordSeqStep5": 1,
+    "ChordSeqStep6": 3,
+    "ChordSeqStep7": 4,
+    "ChordSeqStep8": 5
   },
   "Lanes": [],
   "UserChords": [
@@ -398,5 +426,6 @@
   ],
   "Samples": [],
   "Seed": 1,
-  "Locked": []
+  "Locked": [],
+  "MidiMap": []
 }

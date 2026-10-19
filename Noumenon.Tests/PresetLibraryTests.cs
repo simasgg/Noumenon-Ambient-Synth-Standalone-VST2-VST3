@@ -37,4 +37,29 @@ public class PresetLibraryTests : IDisposable
         Assert.Equal(Path.Combine(factory, "Alpha" + PresetIo.Extension), PresetLibrary.Resolve("Alpha", deploy));
         Assert.Null(PresetLibrary.Resolve("Nope", deploy));
     }
+
+    [Fact]
+    public void Subfolders_Are_Families_Listed_After_The_Root_And_Resolved_By_Name()
+    {
+        var factory = Path.Combine(root, "content", "presets");
+        Save(factory, "Init");
+        Save(Path.Combine(factory, "Pad"), "Velvet Field");
+        Save(Path.Combine(factory, "Drone"), "Basalt");
+        Save(Path.Combine(factory, "Drone"), "Ashfall");
+
+        var library = new PresetLibrary(root);
+
+        Assert.Equal(["Init", "Ashfall", "Basalt", "Velvet Field"], library.Factory.Select(preset => preset.Name));
+        Assert.Equal(["", "Drone", "Drone", "Pad"], library.Factory.Select(preset => preset.Family));
+        Assert.Equal(Path.Combine(factory, "Pad", "Velvet Field" + PresetIo.Extension), PresetLibrary.Resolve("Velvet Field", root));
+        Assert.Equal(Path.Combine(factory, "Drone", "Basalt" + PresetIo.Extension), PresetLibrary.Resolve("Drone/Basalt", root));
+        Assert.Equal(Path.Combine(factory, "Drone", "Basalt" + PresetIo.Extension), PresetLibrary.Resolve(@"Drone\Basalt.noumenon", root));
+        Assert.Null(PresetLibrary.Resolve("Pad/Basalt", root));
+    }
+
+    private static void Save(string folder, string name)
+    {
+        Directory.CreateDirectory(folder);
+        PresetIo.Save(new PresetState { Name = name }, Path.Combine(folder, name + PresetIo.Extension));
+    }
 }

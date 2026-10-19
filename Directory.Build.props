@@ -1,0 +1,13 @@
+<Project>
+
+  <!-- The release version of every project. The standalone's About box, the VST2 product version,
+       the VST3 class info and build-release.ps1 (the installer and zip names) all read it from
+       here or from the built assemblies, so this is the one place a release bump happens. The
+       informational version stays the bare number, without the SDK's "+commit" suffix, because
+       that string is what the About box shows. -->
+  <PropertyGroup>
+    <Version>1.0.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+</Project>

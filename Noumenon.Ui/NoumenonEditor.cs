@@ -238,14 +238,7 @@ public sealed class NoumenonEditor : UserControl
             return;
 
         var menu = new ContextMenuStrip { ShowCheckMargin = true, ShowImageMargin = false };
-        for (var i = 0; i < names.Count; i++)
-        {
-            var index = i;
-            var item = new ToolStripMenuItem(names[i]) { Checked = host.CurrentPresetIndex == i };
-            item.Click += (_, _) => host.LoadPreset(index);
-            menu.Items.Add(item);
-        }
-
+        PresetMenu.Fill(menu.Items, names, host.PresetGroups, host.CurrentPresetIndex, host.LoadPreset);
         surface.ShowMenu(menu, new PointF(6f, 22f));
     }
 

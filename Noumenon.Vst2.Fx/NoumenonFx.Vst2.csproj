@@ -20,7 +20,6 @@
     <ServerGarbageCollection>false</ServerGarbageCollection>
     <TieredPGO>true</TieredPGO>
 
-    <Version>0.1.0</Version>
     <Authors>Noumenon</Authors>
     <Company>Noumenon</Company>
     <Product>Noumenon FX</Product>

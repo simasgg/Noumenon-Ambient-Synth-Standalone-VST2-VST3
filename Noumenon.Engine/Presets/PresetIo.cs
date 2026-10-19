@@ -41,16 +41,28 @@ public static class PresetIo
         return state;
     }
 
-    /// <summary>The presets in a folder (non-recursive), by name.</summary>
+    /// <summary>The presets in a folder and its subfolders, each subfolder a family: the folder's own first, then family by family, by name within each.</summary>
     public static IReadOnlyList<PresetInfo> Scan(string folder)
     {
         if (!Directory.Exists(folder))
             return [];
 
-        return Directory.EnumerateFiles(folder, "*" + Extension)
-            .Select(path => new PresetInfo(Path.GetFileNameWithoutExtension(path), path))
-            .OrderBy(info => info.Name, StringComparer.OrdinalIgnoreCase)
+        var options = new EnumerationOptions { RecurseSubdirectories = true, IgnoreInaccessible = true };
+
+        return Directory.EnumerateFiles(folder, "*" + Extension, options)
+            .Select(path => new PresetInfo(Path.GetFileNameWithoutExtension(path), path, FamilyOf(folder, path)))
+            .OrderBy(info => info.Family.Length > 0)
+            .ThenBy(info => info.Family, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(info => info.Name, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    /// <summary>The subfolder a preset sits in relative to its bank, with '/' between levels; empty at the root.</summary>
+    private static string FamilyOf(string folder, string path)
+    {
+        var relative = Path.GetRelativePath(folder, Path.GetDirectoryName(path) ?? folder);
+
+        return relative == "." ? "" : relative.Replace(Path.DirectorySeparatorChar, '/');
     }
 
     /// <summary>Upgrades an older preset in place; version 0 (no field) is treated as the first format.</summary>
@@ -61,4 +73,5 @@ public static class PresetIo
     }
 }
 
-public sealed record PresetInfo(string Name, string Path);
+/// <param name="Family">The subfolder of its bank the preset sits in ('/' between levels), empty at the bank's root.</param>
+public sealed record PresetInfo(string Name, string Path, string Family = "");

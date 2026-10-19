@@ -10,6 +10,9 @@ public interface IEditorHost
 {
     IReadOnlyList<string> PresetNames { get; }
 
+    /// <summary>Beside <see cref="PresetNames"/>: the menu group each preset is shown in (see <see cref="PresetMenu"/>), empty for the top level.</summary>
+    IReadOnlyList<string> PresetGroups { get; }
+
     int CurrentPresetIndex { get; }
 
     string CurrentPresetName { get; }

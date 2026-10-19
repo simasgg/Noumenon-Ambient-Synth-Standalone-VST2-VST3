@@ -26,6 +26,7 @@ public abstract partial class PluginEditorHost : IEditorHost
     private NoumenonEditor? control;
     private System.Windows.Forms.Timer? timer;
     private IReadOnlyList<string> presetNames = [];
+    private IReadOnlyList<string> presetGroups = [];
     private float scale = 1f;
 
     protected PluginEditorHost(PluginSessionBase session)
@@ -55,6 +56,8 @@ public abstract partial class PluginEditorHost : IEditorHost
     public Size PanelSize => new((int)MathF.Round(NoumenonEditor.LogicalWidth * PanelScale), (int)MathF.Round(NoumenonEditor.LogicalHeight * PanelScale));
 
     public IReadOnlyList<string> PresetNames => presetNames;
+
+    public IReadOnlyList<string> PresetGroups => presetGroups;
 
     public int CurrentPresetIndex => session.Library.IndexOf(session.PresetPath);
 
@@ -256,8 +259,8 @@ public abstract partial class PluginEditorHost : IEditorHost
 
     private void RefreshPresetNames()
     {
-        var library = session.Library;
-        presetNames = library.All.Select(preset => (library.Factory.Contains(preset) ? "★ " : "") + preset.Name).ToArray();
+        presetNames = PresetMenu.Names(session.Library);
+        presetGroups = PresetMenu.Groups(session.Library);
     }
 
     [LibraryImport("user32.dll")]
