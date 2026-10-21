@@ -115,6 +115,8 @@ public sealed class NoumenonEngine
     private float peakRelease;
     private float outputPeakLeft;
     private float outputPeakRight;
+    private float heardP1;
+    private float heardP2;
 
     public NoumenonEngine()
     {
@@ -162,10 +164,10 @@ public sealed class NoumenonEngine
 
     public ulong Seed => seed;
 
-    /// <summary>The P1 fader as the engine hears it (lane or fader, MIDI, bend, glide), in semitones.</summary>
-    public float P1 => pitch1.Value;
+    /// <summary>The P1 fader as the engine hears it (lane or fader, MIDI, bend, glide, then the matrix slots aimed at it), in semitones.</summary>
+    public float P1 => Volatile.Read(ref heardP1);
 
-    public float P2 => pitch2.Value;
+    public float P2 => Volatile.Read(ref heardP2);
 
     public float EnvelopeFollowerValue => follower.Value;
 
@@ -665,9 +667,14 @@ public sealed class NoumenonEngine
         resolved[(int)ParamId.P1Value] = p1;
         resolved[(int)ParamId.P2Value] = p2;
 
-        // The matrix, on top of everything above.
+        // The matrix, on top of everything above. Its P1/P2 sources are the faders as glided; what
+        // the oscillators, the sampler and the Resochord follow is the fader with its slots added.
         matrix.Gather(dt, resolved, p1, p2, follower.Value, Midi);
         matrix.Apply(resolved);
+        p1 = R(ParamId.P1Value);
+        p2 = R(ParamId.P2Value);
+        Volatile.Write(ref heardP1, p1);
+        Volatile.Write(ref heardP2, p2);
 
         gateEnvelope.SetFreeRun(RI(ParamId.PlayMode) == 0);
         gateEnvelope.SetTimes(R(ParamId.GateAttack), R(ParamId.GateRelease));

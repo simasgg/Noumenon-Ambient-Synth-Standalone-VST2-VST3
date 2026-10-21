@@ -8,7 +8,7 @@ namespace Noumenon.Tests;
 
 public class FactoryBankTests
 {
-    private static readonly string[] Families = ["", "Broken", "Drone", "FX", "Pad", "Rhythmic", "Texture"];
+    private static readonly string[] Families = ["", "Broken", "Drone", "Pad", "Rhythmic", "Texture"];
 
     private static string Content => FactoryContent.Root ?? throw new InvalidOperationException("The repository's content folder was not found.");
 

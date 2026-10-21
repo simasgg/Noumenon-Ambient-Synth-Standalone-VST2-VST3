@@ -93,9 +93,9 @@ internal static class MainPage
         w.Add(new WaveIconWidget(engine, section, slot, x + 3, y + 3, 34, 14));
         w.Add(new NumberWidget(engine, ParameterTable.Osc(section, slot, OscParam.Semitone), x + 40, y + 4, 32));
         w.Add(new NumberWidget(engine, ParameterTable.Osc(section, slot, OscParam.Fine), x + 74, y + 4, 32));
-        w.Add(new FaderWidget(engine, ParameterTable.Osc(section, slot, OscParam.Level), x + 4, y + 27, 40, vertical: false));
-        w.Add(new KnobWidget(engine, () => IsNoise(engine, section, index) ? ParameterTable.Osc(section, index, OscParam.NoiseCutoff) : ParameterTable.Osc(section, index, OscParam.Shape), x + 62, y + 21, 18));
-        w.Add(new NumberWidget(engine, ParameterTable.Osc(section, slot, OscParam.Trim), x + 82, y + 24, 26));
+        w.Add(new FaderWidget(engine, ParameterTable.Osc(section, slot, OscParam.Level), x + 4, y + 27, 36, vertical: false));
+        w.Add(new KnobWidget(engine, () => IsNoise(engine, section, index) ? ParameterTable.Osc(section, index, OscParam.NoiseCutoff) : ParameterTable.Osc(section, index, OscParam.Shape), x + 56, y + 21, 18));
+        w.Add(new NumberWidget(engine, ParameterTable.Osc(section, slot, OscParam.Trim), x + 76, y + 24, 30));
         w.Add(new ToggleWidget(engine, ParameterTable.Osc(section, slot, OscParam.P1Route), x + 4, y + 43, 24, 12, "P1"));
         w.Add(new ToggleWidget(engine, ParameterTable.Osc(section, slot, OscParam.P2Route), x + 30, y + 43, 24, 12, "P2"));
         w.Add(new LabelWidget($"{section}{slot + 1}", x + 58, y + 43, 48, 12, EditorTheme.Right, EditorTheme.SmallFont, EditorTheme.TextDim));
@@ -114,7 +114,7 @@ internal static class MainPage
             var fader = p;
             w.Add(new LabelWidget($"P{p + 1}", x0, y, 18, 13, EditorTheme.Center, EditorTheme.TitleFont));
             w.Add(new FaderWidget(engine, ParameterTable.Pitch(p, PitchParam.Value), x0 + 22, y + 5, 150, vertical: false));
-            w.Add(new DisplayTextWidget(() => (fader == 0 ? engine.P1 : engine.P2).ToString("+0.0;-0.0;0.0", inv), x0 + 192, y, 44, 13, tooltip: $"P{p + 1} as the engine hears it: lane or fader, MIDI, bend, glide (semitones)"));
+            w.Add(new DisplayTextWidget(() => (fader == 0 ? engine.P1 : engine.P2).ToString("+0.0;-0.0;0.0", inv), x0 + 192, y, 44, 13, tooltip: $"P{p + 1} as the engine hears it: lane or fader, MIDI, bend, glide, matrix (semitones)"));
             w.Add(new ToggleWidget(engine, ParameterTable.Pitch(p, PitchParam.Midi), x0 + 240, y, 34, 13, "MIDI"));
             w.Add(new KnobWidget(engine, ParameterTable.Pitch(p, PitchParam.Glide), x0 + 282, y - 3, 18, "GLIDE", labelBelow: true, labelWidth: 34));
             w.Add(new NumberWidget(engine, ParameterTable.Pitch(p, PitchParam.BendRange), x0 + 316, y, 28));
@@ -266,11 +266,10 @@ internal static class MainPage
         w.Add(new MenuWidget(engine, ParamId.RandomizeScope, 532, t + 18, 76, 14));
         w.Add(new KnobWidget(engine, ParamId.RandomizeAmount, 616, t + 16, 20, "AMOUNT", labelBelow: true));
         w.Add(new NumberWidget(engine, ParamId.RandomSeed, 690, t + 19, 46, 12, "SEED", 34));
-        w.Add(new DisplayTextWidget(() => PlayState(engine, inv), 456, t + 50, 140, 14, tooltip: "The play state: free run, host play, fading, muted"));
-        w.Add(new DisplayTextWidget(() => $"{engine.HostSampleRate.ToString("0", inv)} Hz × {engine.Oversampling}  ·  {engine.LatencySamples} smp  ·  {engine.ActiveScale.Name}", 456, t + 70, 284, 13, font: EditorTheme.SmallValueFont, color: EditorTheme.TextOnDark));
+        w.Add(new DisplayTextWidget(() => $"{engine.HostSampleRate.ToString("0", inv)} Hz × {engine.Oversampling}  ·  {engine.LatencySamples} smp  ·  {engine.ActiveScale.Name}", 456, t + 52, 284, 13, font: EditorTheme.SmallValueFont, color: EditorTheme.TextOnDark));
 
         // Snapshot morph: pick a preset, a time, go — every parameter glides there; lanes and samples stay.
-        var y = t + 92;
+        var y = t + 78;
         w.Add(new LabelWidget("MORPH", 456, y, 34, 14, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
         var target = new ListChoiceWidget(() => host.PresetNames, 490, y, 132, 14, "The preset to morph to: every parameter glides there over the time beside it; lanes and samples stay", () => host.PresetGroups);
         w.Add(target);
@@ -311,7 +310,7 @@ internal static class MainPage
         w.Add(new FrameWidget(752, t, 244, 90, null, inset: true));
         w.Add(new LabelWidget("NOUMENON", 752, t + 12, 244, 24, EditorTheme.Center, EditorTheme.BadgeFont));
         w.Add(new LabelWidget("generative ambient loops", 752, t + 38, 244, 12, EditorTheme.Center, EditorTheme.SmallFont, EditorTheme.TextDim));
-        w.Add(new DisplayTextWidget(() => PlayState(engine, inv), 764, t + 60, 220, 14, font: EditorTheme.SmallValueFont));
+        w.Add(new DisplayTextWidget(() => PlayState(engine, inv), 764, t + 60, 220, 14, tooltip: "The play state: PLAYING while a DAW's transport runs, SYNC when Host Sync follows a tempo, FREE RUN otherwise; MUTED / FADING", font: EditorTheme.SmallValueFont));
     }
 
     // ---- Helpers ----
@@ -341,6 +340,7 @@ internal static class MainPage
         engine.FadeLevel <= 0f ? "MUTED"
         : engine.FadeLevel < 1f ? "FADING"
         : engine.Clock.HostPlaying ? "PLAYING " + engine.Clock.HostTempo.ToString("0.#", inv) + " BPM"
+        : engine.Parameters.GetBool(ParamId.HostSync) && engine.Clock.HostTempo > 0 ? "SYNC " + engine.Clock.HostTempo.ToString("0.#", inv) + " BPM"
         : "FREE RUN";
 
     private static string LaneSummary(NoumenonEngine engine)

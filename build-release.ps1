@@ -11,15 +11,16 @@
     4. Compiles installer\Noumenon.iss with Inno Setup 6.
     5. Packs the portable zips (VST3, VST2, standalone), each with its own copy of the factory
        content, for users who install by hand.
-    6. Writes dist\RELEASE-NOTES-<version>.md from the version's section of CHANGELOG.md, with the
+    6. Writes RELEASE-NOTES-<version>.md from the version's section of CHANGELOG.md, with the
        file sizes and SHA-256 hashes appended.
     7. With -TestInstall, compiles a sandboxed variant of the installer, installs it silently
        into a temporary folder (no elevation, nothing outside that folder but an HKCU value),
        checks the layout, loads the installed plugins with tools\Test-PluginLoad.ps1, uninstalls
        and checks that nothing is left.
 
-    Output lands in dist\. The version comes from <Version> in Directory.Build.props, the single
-    place it is set.
+    Output lands in dist\Noumenon-<version>\, one folder per release, so earlier releases stay
+    as they were. The version comes from <Version> in Directory.Build.props, the single place it
+    is set.
 
 .PARAMETER RefreshDownloads
     Downloads the two redistributables again instead of using the copies cached in
@@ -264,6 +265,7 @@ if (-not $version)
     throw 'Could not read <Version> from Directory.Build.props.'
 }
 $version = $version.Trim()
+$releaseDir = Join-Path $distDir "Noumenon-$version"
 $includeVst2 = -not $NoVst2
 $dotnet = Find-Dotnet
 Write-Step "Building Noumenon $version  (dotnet: $dotnet)"
@@ -375,12 +377,12 @@ foreach ($prerequisite in $prerequisites)
 
 Write-Step 'Compiling the installer'
 $iscc = Find-Iscc
-if (-not (Test-Path $distDir))
+if (-not (Test-Path $releaseDir))
 {
-    New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+    New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 }
 # Whatever an earlier run left for this version goes, so the notes list only what this run made.
-Get-ChildItem $distDir -File | Where-Object { $_.Name -like "Noumenon-$version-*" -or $_.Name -eq "RELEASE-NOTES-$version.md" } | Remove-Item -Force
+Get-ChildItem $releaseDir -File | Where-Object { $_.Name -like "Noumenon-$version-*" -or $_.Name -eq "RELEASE-NOTES-$version.md" } | Remove-Item -Force
 $artifacts = @()
 
 $defines = @(
@@ -405,9 +407,9 @@ if ($SignCommand)
     $signArguments += '/DSignTool=noumenon', "/Snoumenon=$SignCommand"
 }
 
-Invoke-Checked 'ISCC' { & $iscc '/Q' @defines @signArguments "/DOutputDir=$distDir" $issFile }
+Invoke-Checked 'ISCC' { & $iscc '/Q' @defines @signArguments "/DOutputDir=$releaseDir" $issFile }
 
-$setupExe = Join-Path $distDir "Noumenon-$version-Setup.exe"
+$setupExe = Join-Path $releaseDir "Noumenon-$version-Setup.exe"
 Assert-File $setupExe 'The installer'
 $artifacts += $setupExe
 
@@ -416,16 +418,16 @@ $artifacts += $setupExe
 if (-not $SkipZip)
 {
     Write-Step 'Packing the portable zips'
-    $zip = Join-Path $distDir "Noumenon-$version-VST3-portable.zip"
+    $zip = Join-Path $releaseDir "Noumenon-$version-VST3-portable.zip"
     New-Zip $zip @{ 'Noumenon.vst3' = $vst3Bundle }
     $artifacts += $zip
     if ($includeVst2)
     {
-        $zip = Join-Path $distDir "Noumenon-$version-VST2-portable.zip"
+        $zip = Join-Path $releaseDir "Noumenon-$version-VST2-portable.zip"
         New-Zip $zip @{ 'Noumenon VST2\Noumenon' = $vst2Deploy; 'Noumenon VST2\Noumenon FX' = $vst2FxDeploy }
         $artifacts += $zip
     }
-    $zip = Join-Path $distDir "Noumenon-$version-Standalone-portable.zip"
+    $zip = Join-Path $releaseDir "Noumenon-$version-Standalone-portable.zip"
     New-Zip $zip @{ 'Noumenon' = $standaloneOut; 'Noumenon\Content' = $contentDir; 'Noumenon\Licenses' = $licensesDir }
     $artifacts += $zip
 }
@@ -439,7 +441,7 @@ foreach ($artifact in ($artifacts | ForEach-Object { Get-Item $_ } | Sort-Object
     $hash = (Get-FileHash $artifact.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
     $table += "| ``$($artifact.Name)`` | $(Format-Size $artifact.Length) | ``$hash`` |"
 }
-$notesPath = Join-Path $distDir "RELEASE-NOTES-$version.md"
+$notesPath = Join-Path $releaseDir "RELEASE-NOTES-$version.md"
 $notes = (Get-ReleaseNotes $version) + "`n" + ($table -join "`n") + "`n"
 [IO.File]::WriteAllText($notesPath, $notes, (New-Object Text.UTF8Encoding $false))
 Write-Host "    $notesPath"
@@ -546,7 +548,8 @@ if ($TestInstall)
 # --- summary ------------------------------------------------------------------------------------
 
 Write-Step 'Done'
-Get-ChildItem $distDir -File | Where-Object { $_.Name -like "*$version*" } | ForEach-Object {
+Write-Host "    $releaseDir"
+Get-ChildItem $releaseDir -File | Where-Object { $_.Name -like "*$version*" } | ForEach-Object {
     Write-Host ("    {0}  ({1})" -f $_.Name, (Format-Size $_.Length))
 }
 Write-Host ''

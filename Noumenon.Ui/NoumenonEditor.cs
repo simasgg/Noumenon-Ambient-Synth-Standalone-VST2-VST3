@@ -120,7 +120,7 @@ public sealed class NoumenonEditor : UserControl
                             widget.MouseWheel(centre, -120);
                             exercised++;
                             break;
-                        case WaveIconWidget or ListChoiceWidget or ChordCellWidget:
+                        case WaveIconWidget or ListChoiceWidget or ChordCellWidget or SampleLibraryWidget:
                             widget.MouseWheel(centre, 120);
                             widget.MouseWheel(centre, -120);
                             exercised++;

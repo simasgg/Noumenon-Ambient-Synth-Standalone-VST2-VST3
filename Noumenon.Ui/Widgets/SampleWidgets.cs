@@ -164,7 +164,7 @@ public sealed class SampleKeysWidget : Widget
         Collect();
         if (rows.Count == 0)
         {
-            EditorDraw.Text(g, "no samples — drop a file on the display above", Bounds, EditorTheme.SmallFont, EditorTheme.TextDim, EditorTheme.Center);
+            EditorDraw.Text(g, "no samples — pick one from the library", Bounds, EditorTheme.SmallFont, EditorTheme.TextDim, EditorTheme.Center);
             return;
         }
 

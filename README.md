@@ -40,10 +40,11 @@ internet connection.
 | VST3 plugin | `C:\Program Files\Common Files\VST3\Noumenon.vst3` |
 | VST2 plugins (if chosen) | `C:\Program Files\Common Files\VST2\Noumenon` and `…\VST2\Noumenon FX` |
 | Your presets | `Documents\Noumenon\Presets` (shared by every host) |
+| Your samples | `Documents\Noumenon\Samples` (listed in every host's sample library) |
 | Standalone settings, learned MIDI controllers | `%APPDATA%\Noumenon\settings.json` |
 
-To remove it: **Settings → Apps → Noumenon → Uninstall**. Your own presets and recordings in
-Documents are left alone.
+To remove it: **Settings → Apps → Noumenon → Uninstall**. Your own presets, samples and
+recordings in Documents are left alone.
 
 **Portable zips** (`Noumenon-<version>-VST3-portable.zip`, `-VST2-portable.zip`,
 `-Standalone-portable.zip`) hold the same files for a manual install; each carries its own copy of
@@ -67,7 +68,7 @@ the factory content. With them you install the .NET 10 Desktop Runtime (x64) you
   up — that includes another VST.NET plugin such as EmptySpace. If your host runs plugins in one
   process, use one VST2 identity at a time, or let the host bridge/sandbox them.
 - **FL Studio sends no audio into instruments**, which is why Noumenon FX exists: put it on a
-  mixer track to process the track (the FX family of presets is made for it).
+  mixer track and turn the sampler's **S/IN** towards the input to process the track.
 - Noumenon reports a small constant **latency** (the distortion's oversampling filters, 63 samples at the normal engine rate) and hosts compensate it automatically.
 
 ---
@@ -120,7 +121,8 @@ played, plus pitch bend times **BEND**), and **GLIDE**.
 **DIR** (speed and direction: negative plays backwards, 0 holds still), **S/IN** (the crossfade
 from the sample to the live input), **MASTER**, the **AM** route (the sample's envelope shapes the
 oscillators), **RETRIG**, **STEREO**. Drop an audio file on the display, double-click it to load
-one, or right-click it → **Factory sample** for the bank that ships with Noumenon.
+one, or right-click it → **Factory samples** or **My samples**; the SAMPLE page's **LIBRARY**
+lists them all.
 
 **The display and COMBINE.** The display shows the output as an XY scope (drag it to offset the
 phase of X and Y and turn the figure; **ZOOM** is its gain), section A against section B, or the
@@ -168,7 +170,17 @@ the three modes — **Classic** (a loop that crossfades its seam), **Granular** 
 grains: **SIZE**, **DENSITY**, **SPRAY**, **PITCH ±**, **WINDOW**, **WIDTH**, **POSITION**, and
 **SCAN** free or locked to a playhead moving at DIR) and **Stretch** (spectral time-stretch:
 **AMOUNT** slows it without changing pitch, three window lengths) — the **WAVETABLE** view of the
-sample the oscillators' Wavetable wave reads, and **KEYS**, every loaded sample.
+sample the oscillators' Wavetable wave reads, the **LIBRARY** and **KEYS**, every loaded sample.
+
+**The library** lists every factory sample and wavetable, and your own samples, whatever preset
+is loaded: a preset carries only the samples it plays, and loading another one replaces them, but
+the library keeps the rest one click away. Click a sample to load it onto the sampler's key (the
+line above the list says which); a wavetable goes onto a key of its own and becomes the
+oscillators' table; a sample that is already on a key is selected instead of loaded twice.
+Right-click for the other target or the file's folder. **Your samples** live in
+`Documents\Noumenon\Samples` — **MY FOLDER…** opens it, and files dropped on the list are copied
+there. Subfolders become groups, and a subfolder named `Wavetables` holds wavetables. Every host
+sees the same folder. Save a preset and it keeps the samples it plays.
 
 ### MOD — the modulation matrix
 
@@ -176,7 +188,8 @@ Three **LFOs** (sine to drift) and the **envelope follower** (which signal it he
 the input, the sidechain, the sections or the output), each with a live trace; four **MACROS**;
 twelve matrix slots — source, target, depth, and a bar showing what the slot adds right now;
 **MIDI**: the matrix's CC and the controllers you have taught it; **HOST SYNC** (lanes snap to bars,
-sequencer steps to beats), **RESTART ON PLAY** and the **ENGINE RATE** (2× runs the engine at
+sequencer steps to beats, at the DAW's tempo or the standalone's BPM), **RESTART ON PLAY** (a DAW
+starting playback restarts the lanes) and the **ENGINE RATE** (2× runs the engine at
 twice the host rate).
 
 ### CHORDS — the resonator's harmony
@@ -210,8 +223,8 @@ volume.
 
 ## The factory bank
 
-Fifty presets in six families, all levelled to the same loudness (−20 LUFS) so changing presets
-doesn't jump in volume. Each has a short description.
+Forty-eight presets — Init and five families — all levelled to the same loudness (−20 LUFS) so
+changing presets doesn't jump in volume. Each has a short description.
 
 | Family | What it is for |
 |---|---|
@@ -220,19 +233,19 @@ doesn't jump in volume. Each has a short description.
 | **Texture** | The factory samples up front — granulated, stretched, ringing through the resonator. |
 | **Rhythmic** | Pulse from the 120 BPM loops, the AM route, square LFOs, sequenced chords; with Host Sync they follow your tempo. |
 | **Broken** | Distortion, bit reduction, ring modulation, stepped pitch lanes, feedback near its edge. |
-| **FX** | For **Noumenon FX**: whatever you feed in runs through the resonator, the drift delay, the distortion and the reverb — or shapes a drone through the envelope follower. |
 
 The **factory samples** are original, synthesized for Noumenon — sustained tones (bowed glass, a
 breathy choir, tape strings, a reed organ, a flute, a low drone), plucks and bells, field-like
 textures (wind, rain, surf, embers, tape hiss, shortwave, night insects, vinyl), two 120 BPM loops
 and a heartbeat, and digital debris — plus five wavetables (a harmonic ladder, vowels, pulse widths, odd glass,
 organ stops) for the oscillators' Wavetable wave. A preset that uses one stores it as
-`factory:samples/…`, so it loads in every host.
+`factory:samples/…`, so it loads in every host; the SAMPLE page's library offers all of them in
+any preset.
 
 **How the bank is made.** The presets are recipes in code (`Noumenon.Factory/Bank`), written like
 patch sheets — slots, sections, chain, lanes — so the bank is reproducible and every value is
 deliberate. Each lane comes from the recipe's own seed. Every preset is then played offline for
-half a minute — with notes if it is gated, with audio if it is an FX preset — measured, and its
+half a minute — with notes if it is gated, with audio if it listens to the input — measured, and its
 Output Volume set to the common loudness. The samples are rendered by the same tool.
 
 ---
@@ -240,16 +253,19 @@ Output Volume set to the common loudness. The samples are rendered by the same t
 ## The standalone
 
 **Audio** settings pick WASAPI (shared or exclusive) or ASIO, the sample rate and buffer, an input
-for Samp↔In and a MIDI port; without a MIDI keyboard the computer keyboard can play notes. The
-toolbar records the output to WAV, plays an internal transport for Host Sync, and has a *party mode*
-that randomizes on a timer. **File → Bounce** renders a preset offline to WAV, faster than real
-time. **View → Developer Panel** lists every parameter with its lane buttons.
+for Samp↔In and a MIDI port; without a MIDI keyboard the computer keyboard can play notes. On the
+toolbar, **BPM** is the tempo Host Sync and bounces use (the standalone has no transport to start
+and stop: it plays from the moment it opens, and **RESTART** realigns the loops). **● Rec** records
+the output to WAV; while it runs the button turns red, counts the time and reads **Save Rec** —
+click it again to stop and save the file. **File → Bounce**
+renders a preset offline to WAV, faster than real time. **View → Developer Panel** lists every
+parameter with its lane buttons.
 
 From the command line (`Noumenon.Standalone.exe` in the install folder):
 
 ```
 Noumenon.Standalone.exe --preset "Basalt"
-Noumenon.Standalone.exe --bounce out.wav --minutes 20 --rate 48000 --preset "Drone/Living Faders"
+Noumenon.Standalone.exe --bounce out.wav --minutes 20 --rate 48000 --preset "Drone/Slow Tides"
 Noumenon.Standalone.exe --record live.wav --seconds 600
 ```
 
@@ -287,7 +303,7 @@ The plugins a host loads are laid out by the build:
 test, caches the two Microsoft redistributables in `installer\redist`, compiles
 `installer\Noumenon.iss` with [Inno Setup 6](https://jrsoftware.org/isinfo.php)
 (`winget install --id JRSoftware.InnoSetup -e`) and writes the installer, the portable zips and the
-release notes into `dist\`. `-TestInstall` also installs the result into a sandbox folder, loads the
+release notes into `dist\Noumenon-<version>\`, one folder per release. `-TestInstall` also installs the result into a sandbox folder, loads the
 installed plugins and uninstalls it again; `-NoVst2` leaves the VST2 plugins out; `-SignCommand`
 signs the binaries and the installer. The version is set once, in `Directory.Build.props`;
 `CHANGELOG.md` holds the notes for each version.

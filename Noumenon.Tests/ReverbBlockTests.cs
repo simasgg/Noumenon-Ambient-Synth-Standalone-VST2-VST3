@@ -146,24 +146,30 @@ public class ReverbBlockTests
         for (var k = 0; k < 20; k++)
             Impulse(r, 512);
 
+        // The measured loop runs once first: its room switches and freezes reach code the impulses above do not.
+        SwitchRooms();
         var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var k = 0; k < 600; k++)
-        {
-            if (k % 100 == 0)
-                r.SetRoom(k / 100);
-
-            r.SetSize((k & 1) == 0 ? 0.5f : 0.8f);
-            r.SetFreeze(k % 300 == 150);
-            for (var i = 0; i < 512; i++)
-            {
-                var l = 0.1f;
-                var right = -0.1f;
-                r.Process(ref l, ref right);
-            }
-        }
-
+        SwitchRooms();
         var after = GC.GetAllocatedBytesForCurrentThread();
 
         Assert.Equal(0, after - before);
+
+        void SwitchRooms()
+        {
+            for (var k = 0; k < 600; k++)
+            {
+                if (k % 100 == 0)
+                    r.SetRoom(k / 100);
+
+                r.SetSize((k & 1) == 0 ? 0.5f : 0.8f);
+                r.SetFreeze(k % 300 == 150);
+                for (var i = 0; i < 512; i++)
+                {
+                    var l = 0.1f;
+                    var right = -0.1f;
+                    r.Process(ref l, ref right);
+                }
+            }
+        }
     }
 }

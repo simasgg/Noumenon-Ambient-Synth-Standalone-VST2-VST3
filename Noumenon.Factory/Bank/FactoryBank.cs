@@ -8,7 +8,7 @@ namespace Noumenon.Factory.Bank;
 internal sealed record Recipe(string Family, string Name, ulong Seed, string Description, Action<PresetBuilder> Patch);
 
 /// <summary>
-/// The factory bank: the recipes of every family (Drone, Pad, Texture, Rhythmic, Broken, FX),
+/// The factory bank: the recipes of every family (Drone, Pad, Texture, Rhythmic, Broken),
 /// written out as <c>content/presets/&lt;Family&gt;/&lt;Name&gt;.noumenon</c>, and the pass that
 /// keeps the whole bank — the recipes and the presets made by hand before them — at one
 /// loudness: each preset is auditioned (<see cref="Audition"/>) and its Output Volume moved until
@@ -22,7 +22,7 @@ internal static partial class FactoryBank
     private const double Tolerance = 0.5;
     private const int LevelPasses = 3;
 
-    public static IReadOnlyList<Recipe> Recipes => [..Drones, ..Pads, ..Textures, ..Rhythms, ..Broken, ..Effects];
+    public static IReadOnlyList<Recipe> Recipes => [..Drones, ..Pads, ..Textures, ..Rhythms, ..Broken];
 
     public static IReadOnlyList<string> Write(string presetsFolder, string? only = null)
     {

@@ -12,7 +12,9 @@ namespace Noumenon.Ui.Pages;
 /// it the playback controls (mode, key, pitch, the Amp / Dir / Samp↔In bars), the Granular module
 /// (size, density, position with its lane, spray, pitch spread, window, width, free or locked scan),
 /// the Stretch module (amount and window length), the wavetable the oscillators' Wavetable wave
-/// reads, and the list of loaded keys. The MAIN page's sampler strip is the short form of this.
+/// reads, the sample LIBRARY — the factory samples and the player's own folder, there whatever
+/// preset is loaded — and the list of loaded keys. The MAIN page's sampler strip is the short form
+/// of this.
 /// </summary>
 internal static class SamplePage
 {
@@ -78,19 +80,26 @@ internal static class SamplePage
         w.Add(new LabelWidget("the sound. PITCH transposes without changing speed.", sx + 10, t + 106, 274, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
         w.Add(new LabelWidget("Long windows smear more and cost more.", sx + 10, t + 120, 274, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
 
-        // The wavetable.
+        // The wavetable, under PLAYBACK.
         var l = LowerTop;
-        w.Add(new FrameWidget(4, l, 496, LowerHeight, "WAVETABLE"));
+        w.Add(new FrameWidget(4, l, 330, LowerHeight, "WAVETABLE"));
         w.Add(new NumberWidget(engine, ParamId.WavetableKey, 70, l + 18, 40, 12, "TABLE KEY", 58));
         w.Add(new TextButtonWidget("USE THE SELECTED KEY", 118, l + 18, 120, 12, () => engine.Parameters.Set(ParamId.WavetableKey, engine.Parameters.GetInt(ParamId.SamplerSelect)), tooltip: "Make the sampler's key the wavetable"));
-        w.Add(new WavetableViewWidget(engine, 10, l + 36, 484, 188));
-        w.Add(new LabelWidget("Pick Wavetable as a slot's wave (MAIN): Shape scans the frames, pitch as any slot.", 12, l + 228, 480, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
-        w.Add(new LabelWidget("A short file is one cycle; a long one gives 32 frames across the recording.", 12, l + 241, 480, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
+        w.Add(new WavetableViewWidget(engine, 10, l + 36, 318, 188));
+        w.Add(new LabelWidget("Pick Wavetable as a slot's wave (MAIN): Shape scans the frames, pitch as any slot.", 12, l + 228, 318, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
+        w.Add(new LabelWidget("A short file is one cycle; a long one gives 32 frames across the recording.", 12, l + 241, 318, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
 
-        // The keys.
-        w.Add(new FrameWidget(506, l, 490, LowerHeight, "KEYS"));
-        w.Add(new SampleKeysWidget(engine, 512, l + 18, 478, 216));
-        w.Add(new LabelWidget("Drop files on the display above · double-click it to load · right-click a key for more", 512, l + 238, 478, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
+        // The library, under GRANULAR: every sample, whatever the preset loaded.
+        w.Add(new FrameWidget(gx, l, 360, LowerHeight, "LIBRARY"));
+        w.Add(new DisplayTextWidget(() => LibraryTarget(engine, inv), gx + 8, l + 18, 262, 12, font: EditorTheme.SmallFont, color: EditorTheme.TextDim, format: EditorTheme.Left));
+        w.Add(new TextButtonWidget("MY FOLDER…", gx + 276, l + 18, 76, 12, SampleLibraryMenu.OpenUserFolder, tooltip: "Open Documents\\Noumenon\\Samples: what you put there is listed under MY SAMPLES in every preset and every host"));
+        w.Add(new SampleLibraryWidget(engine, host, gx + 6, l + 36, 348, 198));
+        w.Add(new LabelWidget("Click: load onto the key · right-click: more · drop files: add to My samples", gx + 8, l + 238, 344, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
+
+        // The keys, under STRETCH.
+        w.Add(new FrameWidget(sx, l, 290, LowerHeight, "KEYS"));
+        w.Add(new SampleKeysWidget(engine, sx + 6, l + 18, 278, 216));
+        w.Add(new LabelWidget("Click: select for the sampler · right-click: wavetable, clear", sx + 8, l + 238, 274, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
 
         return new PageContent(w, null);
     }
@@ -110,6 +119,14 @@ internal static class SamplePage
         var seconds = engine.SamplePosition / slot.Data.SampleRate;
 
         return $"{slot.Name} · at {seconds.ToString("0.00", inv)} s of {slot.Data.Seconds.ToString("0.00", inv)} s";
+    }
+
+    private static string LibraryTarget(NoumenonEngine engine, CultureInfo inv)
+    {
+        var key = engine.Parameters.GetInt(ParamId.SamplerSelect).ToString(inv);
+        var table = WaveformWidget.WavetableTarget(engine).ToString(inv);
+
+        return $"a click loads onto key {key} · a wavetable onto key {table}";
     }
 
     private static string StretchLine(NoumenonEngine engine, CultureInfo inv)

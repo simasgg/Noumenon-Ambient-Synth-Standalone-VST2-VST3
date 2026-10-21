@@ -90,6 +90,44 @@ public class ModMatrixTests
     }
 
     [Fact]
+    public void A_Slot_Aimed_At_P1_Bends_The_Oscillators()
+    {
+        var engine = Make();
+        var bank = engine.Parameters;
+        RenderBlocks(engine, 2);
+        var unbent = engine.OscillatorHz(SectionId.A, 0);
+
+        bank.Set(ParamId.ModSlot1Source, 11);   // Macro 1
+        bank.Set(ParamId.ModSlot1Target, Target(ParamId.P1Value));
+        bank.Set(ParamId.ModSlot1Depth, 12f / 96f);   // an octave over P1's ±48 semitones
+        bank.Set(ParamId.Macro1, 1f);
+        RenderBlocks(engine, 2);
+
+        Assert.Equal(12f, engine.P1, 3);
+        Assert.Equal(2f * unbent, engine.OscillatorHz(SectionId.A, 0), 2);   // slot A1 follows P1 by default
+        Assert.Equal(0f, bank.Get(ParamId.P1Value));
+    }
+
+    [Fact]
+    public void A_Slot_Aimed_At_P2_Moves_The_Chord_It_Selects()
+    {
+        var engine = Make();
+        var bank = engine.Parameters;
+        bank.Set(ParamId.ResochordChordSelect, 2);   // P2
+        RenderBlocks(engine, 2);
+        Assert.Equal(62f, engine.ResochordNote(3));   // P2 at 0 picks chord 12, Add 9
+
+        bank.Set(ParamId.ModSlot1Source, 11);   // Macro 1
+        bank.Set(ParamId.ModSlot1Target, Target(ParamId.P2Value));
+        bank.Set(ParamId.ModSlot1Depth, -11f / 96f);   // P2 at −11 (C#3) picks chord 1, Major
+        bank.Set(ParamId.Macro1, 1f);
+        RenderBlocks(engine, 2);
+
+        Assert.Equal(-11f, engine.P2, 3);
+        Assert.Equal(60f, engine.ResochordNote(3));
+    }
+
+    [Fact]
     public void A_Playing_Lane_Overrides_Its_Fader_In_The_Resolved_Values()
     {
         var engine = Make();

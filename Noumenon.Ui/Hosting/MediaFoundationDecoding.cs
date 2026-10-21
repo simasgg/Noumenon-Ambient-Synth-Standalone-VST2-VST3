@@ -15,7 +15,7 @@ namespace Noumenon.Ui.Hosting;
 /// </summary>
 public static class MediaFoundationDecoding
 {
-    public const string FileFilter = "Audio files|*.wav;*.wave;*.aif;*.aiff;*.aifc;*.mp3;*.m4a;*.aac;*.mp4;*.wma;*.flac;*.ogg;*.opus|All files|*.*";
+    public static readonly string FileFilter = "Audio files|" + string.Join(";", SampleLibrary.AudioExtensions.Select(extension => "*" + extension)) + "|All files|*.*";
 
     private static bool registered;
 

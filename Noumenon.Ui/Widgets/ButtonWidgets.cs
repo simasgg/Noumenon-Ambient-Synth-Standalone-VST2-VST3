@@ -15,18 +15,21 @@ public sealed class ToggleWidget : Widget
     private readonly ParamBinding binding;
     private readonly string text;
     private readonly ToggleStyle style;
+    private readonly string? hint;
     private bool down;
     private bool shown;
 
-    public ToggleWidget(NoumenonEngine engine, ParamId id, float x, float y, float width, float height, string text, ToggleStyle style = ToggleStyle.Button)
+    /// <param name="hint">A sentence the tooltip adds after the parameter's name and value.</param>
+    public ToggleWidget(NoumenonEngine engine, ParamId id, float x, float y, float width, float height, string text, ToggleStyle style = ToggleStyle.Button, string? hint = null)
     {
         binding = new ParamBinding(engine, id);
         this.text = text;
         this.style = style;
+        this.hint = hint;
         Bounds = new RectangleF(x, y, width, height);
     }
 
-    public override string? Tooltip => $"{binding.Info.Name}: {binding.ValueText}";
+    public override string? Tooltip => hint is null ? $"{binding.Info.Name}: {binding.ValueText}" : $"{binding.Info.Name}: {binding.ValueText} — {hint}";
 
     public override void Draw(Graphics g)
     {

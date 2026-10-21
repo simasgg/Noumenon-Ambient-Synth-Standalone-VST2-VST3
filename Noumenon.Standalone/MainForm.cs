@@ -22,8 +22,8 @@ namespace Noumenon.Standalone;
 /// MIDI hosts and the preset library, hosts the shared <see cref="NoumenonEditor"/> as its client
 /// area and serves it as <see cref="IEditorHost"/> (presets, files, status). A UI timer polls the
 /// engine for the two things the audio thread cannot do itself — running the randomizer when it
-/// is requested and restarting the stream when Engine Rate changes — and keeps the transport,
-/// recording and party-mode state current. The Phase 5 developer panel lives on in its own window
+/// is requested and restarting the stream when Engine Rate changes — and keeps the meters and
+/// the recording state current. The Phase 5 developer panel lives on in its own window
 /// behind the View menu. The menus hold what a plugin host would own: devices, bounce, record.
 /// </summary>
 internal sealed class MainForm : Form, IEditorHost
@@ -31,11 +31,12 @@ internal sealed class MainForm : Form, IEditorHost
     private const int PollIntervalMs = 33;
     private const int StatusEveryPolls = 6;
     private const int ToolbarEveryPolls = 3;
+
+    private static readonly Color RecordingRed = EditorTheme.Recording;
     private const int SmokeCloseMs = 2500;
     private const float MeterDecay = 0.85f;
 
     private static readonly int[] LaneLimits = [30, 60, 120, 300];
-    private static readonly int[] PartyIntervals = [10, 30, 60, 120];
     private static readonly float[] EditorScales = [1f, 1.5f, 2f];
 
     private readonly LaunchOptions options;
@@ -54,11 +55,9 @@ internal sealed class MainForm : Form, IEditorHost
     private readonly MenuStrip menu = new();
     private readonly ToolStrip toolbar = new() { GripStyle = ToolStripGripStyle.Hidden };
     private readonly StatusStrip statusBar = new();
-    private readonly ToolStripButton playButton = new("Play") { CheckOnClick = true };
     private readonly ToolStripTextBox tempoBox = new() { AutoSize = false, Width = 48, TextBoxTextAlign = HorizontalAlignment.Right };
     private readonly ToolStripButton recordButton = new("● Rec");
     private readonly ToolStripLabel recordLabel = new("");
-    private readonly ToolStripButton partyButton = new("Party") { CheckOnClick = true };
     private readonly ToolStripLabel seedLabel = new("");
     private readonly ToolStripStatusLabel statusLabel = new() { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
     private readonly ToolStripStatusLabel loadLabel = new();
@@ -68,12 +67,9 @@ internal sealed class MainForm : Form, IEditorHost
     private readonly ToolStripProgressBar meterLeft = new() { AutoSize = false, Width = 70, Maximum = 1000, Style = ProgressBarStyle.Continuous };
     private readonly ToolStripProgressBar meterRight = new() { AutoSize = false, Width = 70, Maximum = 1000, Style = ProgressBarStyle.Continuous };
     private readonly ToolStripMenuItem recordItem = new("&Record") { ShortcutKeys = Keys.F9 };
-    private readonly ToolStripMenuItem playItem = new("&Play (internal transport)") { ShortcutKeys = Keys.F8, CheckOnClick = true };
-    private readonly ToolStripMenuItem partyItem = new("Party &Mode (randomize on a timer)") { ShortcutKeys = Keys.F10, CheckOnClick = true };
     private readonly ToolStripMenuItem keyboardItem = new("Computer &Keyboard Plays Notes") { CheckOnClick = true };
     private readonly ToolStripMenuItem midiMenu = new("&MIDI");
     private readonly ToolStripMenuItem laneLimitMenu = new("Lane &Length Limit");
-    private readonly ToolStripMenuItem partyIntervalMenu = new("Party &Interval");
     private readonly ToolStripMenuItem recordFormatMenu = new("Record &Format");
     private readonly ToolStripMenuItem scaleMenu = new("Panel &Size");
 
@@ -85,7 +81,6 @@ internal sealed class MainForm : Form, IEditorHost
     private float meterL;
     private float meterR;
     private long shownMidiMessages;
-    private int partyTicksLeft;
     private string? notice;
     private long noticeUntil;
     private string shortStatus = "";
@@ -418,8 +413,6 @@ internal sealed class MainForm : Form, IEditorHost
         FillMidiMenu();
 
         var transport = new ToolStripMenuItem("&Transport");
-        playItem.Click += (_, _) => SetPlaying(playItem.Checked);
-        transport.DropDownItems.Add(playItem);
         transport.DropDownItems.Add(Item("&Tempo…", Keys.Control | Keys.T, () =>
         {
             var typed = InputDialog.Prompt(this, "Tempo", "Beats per minute (20 .. 300)", settings.Tempo.ToString("0.##", CultureInfo.InvariantCulture));
@@ -439,24 +432,6 @@ internal sealed class MainForm : Form, IEditorHost
         }
 
         transport.DropDownItems.Add(laneLimitMenu);
-        transport.DropDownItems.Add(new ToolStripSeparator());
-        partyItem.Click += (_, _) => SetParty(partyItem.Checked);
-        transport.DropDownItems.Add(partyItem);
-        foreach (var interval in PartyIntervals)
-        {
-            var seconds = interval;
-            var item = new ToolStripMenuItem(interval + " s") { Checked = settings.PartyIntervalSeconds == interval };
-            item.Click += (_, _) =>
-            {
-                settings.PartyIntervalSeconds = seconds;
-                partyTicksLeft = Math.Min(partyTicksLeft, PartyTicks);
-                foreach (ToolStripMenuItem sibling in partyIntervalMenu.DropDownItems)
-                    sibling.Checked = sibling == item;
-            };
-            partyIntervalMenu.DropDownItems.Add(item);
-        }
-
-        transport.DropDownItems.Add(partyIntervalMenu);
 
         var presets = new ToolStripMenuItem("&Presets");
         presets.DropDownItems.Add(Item("&Previous", Keys.Control | Keys.Left, () => StepPreset(-1)));
@@ -534,8 +509,8 @@ internal sealed class MainForm : Form, IEditorHost
 
     private void BuildToolbar()
     {
-        playButton.Click += (_, _) => SetPlaying(playButton.Checked);
         tempoBox.Text = settings.Tempo.ToString("0.#", CultureInfo.InvariantCulture);
+        tempoBox.ToolTipText = "Tempo for Host Sync (lanes snap to bars, sequencer steps to beats) and for bounces (Ctrl+T)";
         tempoBox.KeyDown += (_, e) =>
         {
             if (e.KeyCode != Keys.Enter)
@@ -547,19 +522,13 @@ internal sealed class MainForm : Form, IEditorHost
         };
         tempoBox.Leave += (_, _) => ApplyTempo(tempoBox.Text);
         recordButton.Click += (_, _) => ToggleRecording();
-        partyButton.Click += (_, _) => SetParty(partyButton.Checked);
 
-        playButton.ToolTipText = "Internal transport: play state for Restart On Host Play and Host Sync (F8)";
-        toolbar.Items.Add(playButton);
         toolbar.Items.Add(tempoBox);
         toolbar.Items.Add(new ToolStripLabel("BPM"));
         toolbar.Items.Add(new ToolStripSeparator());
-        recordButton.ToolTipText = "Record the output to a WAV (F9)";
+        ShowRecordState(null);
         toolbar.Items.Add(recordButton);
         toolbar.Items.Add(recordLabel);
-        toolbar.Items.Add(new ToolStripSeparator());
-        partyButton.ToolTipText = "Party mode: randomize every interval (F10)";
-        toolbar.Items.Add(partyButton);
         toolbar.Items.Add(new ToolStripSeparator());
         toolbar.Items.Add(Button("Audio…", "Audio & MIDI settings (Ctrl+,)", ShowSettings));
         toolbar.Items.Add(Button("Bounce…", "Render the snapshot to a WAV (Ctrl+B)", Bounce));
@@ -617,17 +586,6 @@ internal sealed class MainForm : Form, IEditorHost
             RestartAudio();
         }
 
-        if (partyItem.Checked)
-        {
-            if (--partyTicksLeft <= 0)
-            {
-                Randomize();
-                partyTicksLeft = PartyTicks;
-            }
-
-            partyButton.Text = $"Party {(partyTicksLeft * PollIntervalMs + 999) / 1000} s";
-        }
-
         if (polls % ToolbarEveryPolls == 0)
             SyncToolbar();
 
@@ -635,28 +593,34 @@ internal sealed class MainForm : Form, IEditorHost
             UpdateStatus();
     }
 
-    private int PartyTicks => Math.Max(1, settings.PartyIntervalSeconds * 1000 / PollIntervalMs);
-
     private void SyncToolbar()
     {
-        var playing = engine.Clock.HostPlaying;
-        if (playButton.Checked != playing)
-            playButton.Checked = playing;
-
-        if (playItem.Checked != playing)
-            playItem.Checked = playing;
-
         var recorder = host.Recorder;
-        var recording = recorder is not null;
-        if (recordButton.Checked != recording)
-            recordButton.Checked = recording;
-
-        if (recordItem.Checked != recording)
-            recordItem.Checked = recording;
-
-        recordLabel.Text = recorder is null ? "" : $"{TimeSpan.FromSeconds(recorder.SecondsWritten):mm\\:ss}{(recorder.FramesDropped > 0 ? " · dropped " + recorder.FramesDropped : "")}{(recorder.Error is null ? "" : " · " + recorder.Error.Message)}";
+        ShowRecordState(recorder);
         if (recorder?.Error is not null)
             ToggleRecording();
+    }
+
+    /// <summary>Idle, the button offers to record; while a recording runs it turns red, counts the time and offers to save it.</summary>
+    private void ShowRecordState(WavRecorder? recorder)
+    {
+        if (recorder is null)
+        {
+            recordButton.Text = "● Rec";
+            recordButton.ToolTipText = "Record the output to a WAV (F9)";
+            recordButton.ResetBackColor();
+            recordButton.ResetForeColor();
+            recordItem.Text = "&Record";
+            recordLabel.Text = "";
+            return;
+        }
+
+        recordButton.Text = $"■ Save Rec  {TimeSpan.FromSeconds(recorder.SecondsWritten):mm\\:ss}";
+        recordButton.ToolTipText = $"Recording to {recorder.Path} — click to stop and save it (F9)";
+        recordButton.BackColor = RecordingRed;
+        recordButton.ForeColor = Color.White;
+        recordItem.Text = "&Save Recording";
+        recordLabel.Text = $"{(recorder.FramesDropped > 0 ? "dropped " + recorder.FramesDropped : "")}{(recorder.Error is null ? "" : " · " + recorder.Error.Message)}";
     }
 
     private void UpdateStatus()
@@ -753,13 +717,6 @@ internal sealed class MainForm : Form, IEditorHost
         settings.Save();
     }
 
-    private void SetPlaying(bool playing)
-    {
-        engine.Clock.HostPlaying = playing;
-        playButton.Checked = playing;
-        playItem.Checked = playing;
-    }
-
     private void ApplyTempo(string text)
     {
         if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var tempo) && !double.TryParse(text, NumberStyles.Float, CultureInfo.CurrentCulture, out tempo))
@@ -774,20 +731,12 @@ internal sealed class MainForm : Form, IEditorHost
         tempoBox.Text = tempo.ToString("0.#", CultureInfo.InvariantCulture);
     }
 
-    private void SetParty(bool on)
-    {
-        partyItem.Checked = on;
-        partyButton.Checked = on;
-        partyTicksLeft = on ? PartyTicks : 0;
-        if (!on)
-            partyButton.Text = "Party";
-    }
-
     private void ToggleRecording()
     {
         if (host.Recorder is { } running)
         {
             var finished = host.StopRecording() ?? running;
+            ShowRecordState(null);
             Notice($"Recorded {finished.SecondsWritten.ToString("0.0", CultureInfo.InvariantCulture)} s to {finished.Path}{(finished.FramesDropped > 0 ? $" — {finished.FramesDropped} frames dropped" : "")}{(finished.Error is null ? "" : " — " + finished.Error.Message)}");
             return;
         }
@@ -803,6 +752,7 @@ internal sealed class MainForm : Form, IEditorHost
             var folder = settings.EffectiveRecordFolder;
             Directory.CreateDirectory(folder);
             var recorder = host.StartRecording(Path.Combine(folder, $"Noumenon {DateTime.Now:yyyy-MM-dd HH-mm-ss}.wav"));
+            ShowRecordState(recorder);
             Notice($"Recording to {recorder.Path}");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
@@ -998,7 +948,7 @@ internal sealed class MainForm : Form, IEditorHost
     {
         MessageBox.Show(this,
             "Panel: Space restart lanes · R randomize · M mute (R and M play notes while the computer keyboard is a MIDI keyboard) · Ctrl+Z / Ctrl+Y undo / redo · Ctrl+Tab next page\n\n" +
-            "F5 Randomize · F6 Restart lanes · F7 Mute · F8 Play / stop the internal transport · F9 Record · F10 Party mode · F12 All notes off\n\n" +
+            "F5 Randomize · F6 Restart lanes · F7 Mute · F9 Record / save the recording · F12 All notes off\n\n" +
             "Ctrl+N Init · Ctrl+O / Ctrl+S Open / save preset · Ctrl+Left / Right previous / next preset · Ctrl+R random factory preset · Ctrl+M morph · Ctrl+B bounce · Ctrl+L load sample · Ctrl+T tempo · Ctrl+, audio settings · Ctrl+D developer panel · Ctrl+1…5 pages\n\n" +
             "Computer keyboard (when on): Z–M one octave with S D G H J as sharps, Q–P the next octave, minus / equals shift octaves.\n\n" +
             "Lanes: click the small display under a fader to arm it, drag the fader to record, release; the button above the display plays the loop.\n\n" +

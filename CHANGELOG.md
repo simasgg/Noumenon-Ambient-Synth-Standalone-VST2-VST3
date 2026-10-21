@@ -2,8 +2,53 @@
 
 Each release has a section here, newest first, under the version that `Directory.Build.props`
 sets. `build-release.ps1` copies the section of the version it builds into
-`dist/RELEASE-NOTES-<version>.md`, with the download sizes and SHA-256 hashes appended, for the
-GitHub release page. Commits are titled `#<version> <summary>`.
+`dist/Noumenon-<version>/RELEASE-NOTES-<version>.md`, with the download sizes and SHA-256 hashes
+appended, for the GitHub release page. Commits are titled `#<version> <summary>`.
+
+## 0.5.1 — 2026-10-22
+
+A sample library on the SAMPLE page, five new drones and a fix for modulation-matrix slots aimed
+at P1 or P2; the standalone retires its Play button and Party mode.
+
+### Added
+
+- A **sample library** on the SAMPLE page: every factory sample and wavetable, and your own
+  samples in `Documents\Noumenon\Samples`, listed whatever preset is loaded. Click one to load it
+  onto the sampler's key (a wavetable onto a key of its own, as the oscillators' table); drop
+  files on the list to copy them into your folder, which every host shares. The waveform's
+  right-click menu offers the same library as *Factory samples* and *My samples*.
+- **Five drones** with Lithuanian names in the Drone family: *Ilgesys* (a dark, flat-tuned B
+  minor drone whose bass and inner voice swing between two chords under a drifting high
+  melody), *Laumžirgis* (a glowing B minor cluster with a stretched choir inside), *Gervės* (a low
+  B drone in slowed-down wind, with gliding calls), *Svaigulys* (a C# minor pad swaying on a tape
+  wow, its filters snapping open twice a chord) and *Perkūno miegas* (a motionless wall of low
+  saws).
+
+### Changed
+
+- The factory bank drops *Living Faders* and the FX family and gains the five drones: 48
+  presets, Init and five families.
+  Noumenon FX processes a track with any preset once the sampler's S/IN is turned to the input.
+- The SAMPLE page's lower row is WAVETABLE, LIBRARY and KEYS, under PLAYBACK, GRANULAR and
+  STRETCH.
+- The standalone's **Play** button (and F8) is gone: it only fed *Restart On Host Play*, which
+  needs a DAW, and the RESTART button already realigns the loops. The **BPM** box stays, as the
+  tempo for Host Sync and bounces. The readout under the wordmark now says **SYNC 120 BPM** when
+  Host Sync follows a tempo without a running transport.
+- The play-state readout in TRANSPORT is gone; it repeated the one under the wordmark.
+- The standalone's *Party* mode (randomize on a timer, F10) is gone. **RANDOMIZE** (R) and
+  *Presets → Random Factory Preset* (Ctrl+R) stay.
+- While recording, the standalone's **● Rec** button turns red, shows the elapsed time and reads
+  **Save Rec**: clicking it stops and saves the WAV.
+- Release tooling: each release goes into a folder of its own, `dist\Noumenon-<version>\`, so the
+  artifacts of earlier releases stay apart.
+
+### Fixed
+
+- A modulation-matrix slot aimed at **P1** or **P2** now bends what the fader reaches — the
+  oscillators routed to it, the sampler and the RESONATOR (pitch and chord select). The engine
+  read the P faders before the matrix, so such a slot moved the fader's display but not the
+  sound; the P readout on MAIN now includes the matrix too.
 
 ## 0.5.0 — 2026-10-20
 

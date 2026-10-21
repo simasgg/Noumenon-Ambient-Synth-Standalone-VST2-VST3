@@ -112,5 +112,141 @@ internal static partial class FactoryBank
                 .Filter(A, 900f).Filter(B, 700f).Combine(0.05f)
                 .Resonator("Deep Minor", 0.9f, 0.2f).Reverb("Cloud", 0.55f, size: 1f, damping: 0.7f).Speed("0.5x", 0.6f)
                 .Lane(ParamId.SectionACutoff, 53f, 0.1f).Lane(ParamId.SectionBLevel, 41f, 0.12f)),
+
+        new("Drone", "Ilgesys", 111,
+            "Dark B minor, tuned a little flat (A4 = 436.3 Hz): a steady B3 with its octave and fifth, under a bass and an inner voice that swing between B and D every 6.9 seconds, each bass note swelling and dying away, while a breathy high melody wanders through a long, dark reverb.",
+            p => p
+                .Set(ParamId.TuningA4, 436.3f)
+                .A(1, Waveform.Sine, -1, 0f, 0.32f).A(2, Waveform.Sine, 6, -4f, 0.06f).A(3, Waveform.Sine, 11, -1f, 0.05f).A(4, Waveform.Sine, 18, 2f, 0.025f)
+                .A(5, Waveform.Sine, -25, -11f, 0.9f).A(6, Waveform.Sine, -6, -4f, 0.54f)
+                .B(1, Waveform.Triangle, 32, 0f, 0.3f).B(2, Waveform.Triangle, 32, 9f, 0.064f).B(3, Waveform.Triangle, 32, -12f, 0.064f)
+                .B(4, Waveform.NoiseLp, 0, 0f, 0.71f, noiseCutoff: 3000f).Off(B, 5, 6)
+                .Filter(A, 4000f).Filter(B, 1650f, 0.7f, "BP").Combine(0f)
+                .MasterFilter(1680f).Drift(15f, 15f, 0.1f).Set(ParamId.SpinLink, true).Resonator("Voices", 0.7f, 0f, on: false)
+                .Reverb("Cloud", 0.24f, size: 0.95f, damping: 0.6f).Output(0f, 0.8f)
+                .Steps(ParamId.OscA5Semitone, CavesCycle, -25f, -22f).Steps(ParamId.OscA6Semitone, CavesCycle, -6f, -10f).Steps(ParamId.OscA2Semitone, CavesCycle, 6f, 2f)
+                .Curve(ParamId.OscA5Level, CavesCycle, phase => 0.9f * Swell(phase * CavesCycle % (CavesCycle / 2f), 1.2f, 6.3f))
+                .Steps(ParamId.OscB1Semitone, CavesMelodySeconds, CavesMelody).Steps(ParamId.OscB2Semitone, CavesMelodySeconds, CavesMelody).Steps(ParamId.OscB3Semitone, CavesMelodySeconds, CavesMelody)
+                .Steps(ParamId.SectionBCutoff, CavesMelodySeconds, CavesMelody.Select(note => NoteHz(note, 436.3f)).ToArray())
+                .Curve(ParamId.SectionBLevel, CavesMelodySeconds, phase => 0.8f * Swell(phase * CavesMelodySeconds % (CavesMelodySeconds / CavesMelody.Length), 1.5f, 3f))),
+
+        new("Drone", "Laumžirgis", 112,
+            "A wide, glowing B minor cluster (B, D, E, F#, A, C#) on detuned saws with a resonant edge near 1 kHz, a stretched choir breathing inside it, a chorus that never settles and a sub on B1 that pulses slowly underneath.",
+            p => p
+                .Set(ParamId.TuningA4, 438.5f)
+                .Sample(1, "Choir Breath.wav", rootNote: 57).Sampler(1, "Stretch", amp: 0.15f, dir: 0.5f, pitch: -1).Stretch(6f, "Medium")
+                .A(1, Waveform.Saw, -13, -6f, 0.1f).A(2, Waveform.Saw, -10, 7f, 0.028f).A(3, Waveform.Saw, -8, -4f, 0.13f)
+                .A(4, Waveform.Saw, -6, 9f, 0.22f).A(5, Waveform.Saw, -1, -8f, 0.14f).A(6, Waveform.Saw, 2, 5f, 0.078f)
+                .B(1, Waveform.Sine, -25, -9f, 0.22f).B(2, Waveform.Sine, -25, 10f, 0.08f).B(3, Waveform.Saw, 6, -7f, 0.22f)
+                .B(4, Waveform.Saw, 9, 6f, 0.15f).B(5, Waveform.Saw, 11, -3f, 0.17f).B(6, Waveform.Saw, 13, 8f, 0.17f)
+                .Filter(A, 815f, 0.45f).Level(A, 1f).Filter(B, 1150f, 0.45f).Combine(0f)
+                .MasterFilter(1665f, 0.2f).Eq(0f, -8f).Drift(14f, 14f, 0f, 0.5f).Set(ParamId.SpinLink, true).Resonator("Voices", 0.7f, 0f, on: false)
+                .Reverb("Cloud", 0.23f, size: 0.9f, damping: 0.5f).Output(0f, 0.9f)
+                .Curve(ParamId.SpinTime1, 24f, phase => 14f + 2f * MathF.Sin(2f * MathF.PI * 17f * phase))
+                .Lane(ParamId.OscB3Level, 23f, 0.3f).Lane(ParamId.OscB4Level, 29f, 0.3f).Lane(ParamId.OscB5Level, 19f, 0.3f).Lane(ParamId.OscB6Level, 37f, 0.3f)
+                .Lane(ParamId.OscA4Level, 31f, 0.25f).Lane(ParamId.OscA5Level, 41f, 0.25f)),
+
+        new("Drone", "Gervės", 113,
+            "A low B drone in a bed of slowed-down wind: B1 beating against itself, B2, and C#4 and A5 above, a suspended chord with no third, while now and then a gliding call rises out of the dark.",
+            p => p
+                .Set(ParamId.TuningA4, 441f)
+                .Sample(1, "Wind.wav").Sampler(1, amp: 0.28f, pitch: -5)
+                .A(1, Waveform.Sine, -25, 0f, 0.42f).A(2, Waveform.Sine, -25, 13f, 0.28f).A(3, Waveform.Triangle, -13, 5f, 0.12f)
+                .A(4, Waveform.Sine, 1, 8f, 0.42f).A(5, Waveform.Sine, 6, -3f, 0.08f).A(6, Waveform.Sine, 21, 4f, 0.071f)
+                .B(1, Waveform.Sine, 13, 2f, 0.04f).B(2, Waveform.Triangle, -24, 0f, 0.25f).B(3, Waveform.Sine, 11, 0f, 0.07f)
+                .B(4, Waveform.Sine, 9, -5f, 0.05f).B(5, Waveform.NoiseLp, 0, 0f, 1f, noiseCutoff: 300f).B(6, Waveform.Triangle, -13, 12f, 0.155f)
+                .Filter(A, 6000f).Filter(B, 1250f).Combine(0f)
+                .MasterFilter(6400f).Eq(0f, -2f).Drift(20f, 20f, 0.2f).Set(ParamId.SpinLink, true).Resonator("Voices", 0.7f, 0f, on: false)
+                .Reverb("Chamber", 0.3f, size: 0.85f).Output(0f, 1.5f)
+                .Curve(ParamId.OscB2Semitone, CallSeconds, phase => CallPitch(phase * CallSeconds))
+                .Curve(ParamId.OscB2Level, CallSeconds, phase => CallLevel(phase * CallSeconds))),
+
+        new("Drone", "Svaigulys", 114,
+            "A seasick C# minor pad: detuned saw chords whose pitch sways ±40 cents on a slow tape wow, step up a fourth and back on a 27.6-second loop, and brighten twice a chord as the filters snap open and close again, with a breath of tape hiss on top.",
+            p => p
+                .Set(ParamId.TuningA4, 439f)
+                .A(1, Waveform.Saw, -16, 0f, 0.21f).A(2, Waveform.Saw, -14, 0f, 0.4f).A(3, Waveform.Saw, -11, 0f, 0.24f)
+                .A(4, Waveform.Saw, -8, 0f, 0.32f).A(5, Waveform.Saw, -4, 0f, 0.34f).A(6, Waveform.Saw, 1, 0f, 0.055f)
+                .B(1, Waveform.Saw, -2, 5f, 0.106f).B(2, Waveform.Saw, 4, -6f, 0.23f).B(3, Waveform.Saw, 8, 4f, 0.14f)
+                .B(4, Waveform.Saw, -11, 12f, 0.13f).B(5, Waveform.Saw, -4, -10f, 0.17f).B(6, Waveform.Triangle, 20, 0f, 0.39f)
+                .Filter(A, 900f).Filter(B, 900f).Combine(0f)
+                .Sample(1, "Tape Hiss.wav").Sampler(1, amp: 0.01f)
+                .MasterFilter(5000f).Drift(30f, 30f, 0f).Set(ParamId.SpinLink, true).Resonator("Voices", 0.7f, 0f, on: false)
+                .Reverb("Cloud", 0.3f, size: 0.8f).Output(0f, 1f)
+                .Pitch(1, 0f, glide: 0.05f).Steps(ParamId.P1Value, WowChordSeconds, 0f, 0f, 5f, 0f)
+                .Curve(ParamId.SectionACutoff, WowChordSeconds, phase => Snap(phase * WowChordSeconds % (WowChordSeconds / 8f)))
+                .Curve(ParamId.SectionBCutoff, WowChordSeconds, phase => Snap(phase * WowChordSeconds % (WowChordSeconds / 8f)))
+                .Curve(ParamId.SpinTime1, 48.3f, phase => 30f + 24f * MathF.Sin(2f * MathF.PI * 10f * phase))),
+
+        new("Drone", "Perkūno miegas", 115,
+            "A huge, motionless drone on B minor: B1, D2 and F#2 and their octaves on saws under a very low low-pass, paired so slightly apart that the whole wall breathes every 2.6 seconds, with a little grit and air on top.",
+            p => p
+                .A(1, Waveform.Saw, -25, -5f, 0.18f).A(2, Waveform.Saw, -25, 5f, 1f).A(3, Waveform.Saw, -22, 8f, 0.36f)
+                .A(4, Waveform.Saw, -22, -20f, 0.33f).A(5, Waveform.Saw, -18, 3f, 0.3f).A(6, Waveform.Saw, -13, 0f, 0.51f)
+                .B(1, Waveform.Sine, -25, 0f, 0.063f).B(2, Waveform.Saw, -20, 0f, 0.06f).B(3, Waveform.Saw, 2, 0f, 0.042f)
+                .B(4, Waveform.Saw, 4, 4f, 0.05f).B(5, Waveform.NoiseLp, 0, 0f, 0.04f, noiseCutoff: 12000f).B(6, Waveform.Saw, 6, -3f, 0.06f)
+                .Filter(A, 147f, 0.15f).Level(A, 1f).Filter(B, 1930f).Level(B, 1f).Combine(0f)
+                .MasterFilter(18000f).Distortion(0.1f, 0.3f).Drift(20f, 20f, 0.1f).Set(ParamId.SpinLink, true).Resonator("Voices", 0.7f, 0f, on: false)
+                .Reverb("Chamber", 0.25f, size: 0.8f).Output(0f, 1.1f)),
     ];
+
+    // Ilgesys: two chords of 6.9 s each, and a melody of eight notes (semitones from middle C) over 56 s.
+    private const float CavesCycle = 13.8f;
+    private const float CavesMelodySeconds = 56f;
+    private static readonly float[] CavesMelody = [32f, 28f, 23f, 20f, 28f, 25f, 22f, 25f];
+
+    // Gervės: the calls — start and length in seconds, then the pitch they rise from, peak at and end on (semitones from middle C).
+    private const float CallSeconds = 29f;
+    private const float CallRestPitch = -24f;
+    private static readonly (float Start, float Length, float From, float Peak, float To)[] Calls =
+        [(3f, 1.2f, -36f, -14f, -14f), (9f, 2f, -30f, -18f, -26f), (17f, 0.9f, -34f, -12f, -12f), (23f, 1.5f, -16f, -16f, -30f)];
+
+    // Svaigulys: four chords of 6.9 s, the filters snapping open twice in each.
+    private const float WowChordSeconds = 27.6f;
+
+    /// <summary>A note's gain <paramref name="t"/> seconds after it began: a smoothstep rise over <paramref name="attack"/> seconds, then a fall of <paramref name="decayDbPerSecond"/> dB a second.</summary>
+    private static float Swell(float t, float attack, float decayDbPerSecond)
+    {
+        if (t < attack)
+        {
+            var x = t / attack;
+
+            return x * x * (3f - 2f * x);
+        }
+
+        return MathF.Pow(10f, -decayDbPerSecond * (t - attack) / 20f);
+    }
+
+    private static float NoteHz(float semitonesFromMiddleC, float a4) => a4 * MathF.Pow(2f, (semitonesFromMiddleC - 9f) / 12f);
+
+    // A cutoff in Hz t seconds after the filters snap open: a quick bright spike over a slower fall back to 500 Hz.
+    private static float Snap(float t) => 500f * (1f + 3f * MathF.Exp(-t / 0.6f) + 12f * MathF.Exp(-t / 0.12f));
+
+    private static float CallPitch(float t)
+    {
+        foreach (var call in Calls)
+        {
+            if (t < call.Start - 0.2f || t > call.Start + call.Length + 0.2f)
+                continue;
+
+            var x = Math.Clamp((t - call.Start) / call.Length, 0f, 1f);
+            var u = x < 0.5f ? 2f * x : 2f * x - 1f;
+            u = u * u * (3f - 2f * u);
+
+            return x < 0.5f ? call.From + (call.Peak - call.From) * u : call.Peak + (call.To - call.Peak) * u;
+        }
+
+        return CallRestPitch;
+    }
+
+    private static float CallLevel(float t)
+    {
+        foreach (var call in Calls)
+        {
+            if (t >= call.Start && t <= call.Start + call.Length)
+                return 0.25f * MathF.Sin(MathF.PI * (t - call.Start) / call.Length);
+        }
+
+        return 0f;
+    }
 }

@@ -38,7 +38,7 @@
 #define AppUrl        "https://github.com/simasgg/Noumenon"
 
 #ifndef AppVersion
-  #define AppVersion  "0.5.0"
+  #define AppVersion  "0.5.1"
 #endif
 #ifndef StandaloneDir
   #define StandaloneDir "..\Noumenon.Standalone\bin\x64\Release\net10.0-windows\publish"

@@ -13,9 +13,10 @@ namespace Noumenon.Factory.Bank;
 /// chain blocks, the sampler, lanes, the matrix — so a recipe reads as a patch sheet. Choices
 /// are given by their display names and checked against the table, so a renamed or reordered
 /// list fails the build of the bank instead of silently picking another entry. Lanes are drawn
-/// either as smooth seamless loops (the randomizer's three-sine loops, from the recipe's own seed)
-/// or as held steps for melodies. <see cref="Build"/> writes every parameter, not only the
-/// changed ones, so a later change of a default never alters a factory preset.
+/// as smooth seamless loops (the randomizer's three-sine loops, from the recipe's own seed), as
+/// held steps for melodies, or from a curve over the loop (envelopes, wobbles, glides).
+/// <see cref="Build"/> writes every parameter, not only the changed ones, so a later change of a
+/// default never alters a factory preset.
 /// </summary>
 internal sealed class PresetBuilder
 {
@@ -345,6 +346,18 @@ internal sealed class PresetBuilder
         var points = new float[count];
         for (var i = 0; i < count; i++)
             points[i] = info.Clamp(steps[i * steps.Length / count]);
+
+        return AddLane(id, points, 1f);
+    }
+
+    /// <summary>A lane drawn from a function of the loop's phase (0 to 1, over <paramref name="seconds"/>) in the parameter's own units: an envelope that repeats, a periodic wobble, glides.</summary>
+    public PresetBuilder Curve(ParamId id, float seconds, Func<float, float> curve)
+    {
+        var info = LaneInfo(id);
+        var count = Math.Max(2, (int)(seconds * AutomationLane.PointsPerSecond));
+        var points = new float[count];
+        for (var i = 0; i < count; i++)
+            points[i] = info.Clamp(curve(i / (float)count));
 
         return AddLane(id, points, 1f);
     }

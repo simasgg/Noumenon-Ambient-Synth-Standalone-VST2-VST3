@@ -86,12 +86,12 @@ internal static class ModPage
         w.Add(new LabelWidget("The map stays with the instrument; presets leave it alone.", rx + 8, MatrixTop + 282, 354, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
 
         w.Add(new FrameWidget(rx, MatrixTop + 306, 366, 86, "HOST  ·  ENGINE"));
-        w.Add(new ToggleWidget(engine, ParamId.HostSync, rx + 10, MatrixTop + 326, 70, 13, "HOST SYNC"));
-        w.Add(new ToggleWidget(engine, ParamId.RestartOnHostPlay, rx + 86, MatrixTop + 326, 100, 13, "RESTART ON PLAY"));
+        w.Add(new ToggleWidget(engine, ParamId.HostSync, rx + 10, MatrixTop + 326, 70, 13, "HOST SYNC", hint: "lane loops snap to whole bars and sequencer steps to beats, at the DAW's tempo (the standalone's BPM box)"));
+        w.Add(new ToggleWidget(engine, ParamId.RestartOnHostPlay, rx + 86, MatrixTop + 326, 100, 13, "RESTART ON PLAY", hint: "in a DAW, starting playback restarts the lanes and the sequencer; the standalone has no transport, so use RESTART there"));
         w.Add(new LabelWidget("ENGINE RATE", rx + 10, MatrixTop + 350, 70, 13, EditorTheme.Left));
         w.Add(new ChoiceButtonsWidget(engine, ParamId.EngineRate, rx + 86, MatrixTop + 350, 70, 13));
         w.Add(new LabelWidget("(restarts the stream)", rx + 162, MatrixTop + 350, 120, 13, EditorTheme.Left, EditorTheme.SmallFont));
-        w.Add(new LabelWidget("Host sync snaps lane loops to bars and sequencer steps to beats.", rx + 10, MatrixTop + 370, 350, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
+        w.Add(new LabelWidget("Sync: loops to bars, steps to beats · Restart on play: a DAW's play", rx + 10, MatrixTop + 370, 350, 12, EditorTheme.Left, EditorTheme.SmallFont, EditorTheme.TextDim));
 
         w.Add(new FrameWidget(rx, MatrixTop + 398, 366, 106, "KEYS", inset: true));
         w.Add(new LabelWidget("Space  restart lanes    R  randomize    M  mute", rx + 10, MatrixTop + 416, 350, 12, EditorTheme.Left, EditorTheme.SmallFont));

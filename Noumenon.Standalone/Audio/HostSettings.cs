@@ -51,8 +51,6 @@ internal sealed class HostSettings
 
     public double Tempo { get; set; } = 120.0;
 
-    public int PartyIntervalSeconds { get; set; } = 30;
-
     public string? LastPresetFolder { get; set; }
 
     /// <summary>The editor's panel size: 1, 1.5 or 2.</summary>
@@ -111,7 +109,6 @@ internal sealed class HostSettings
         RecordFolder = other.RecordFolder;
         LaneMaxSeconds = other.LaneMaxSeconds;
         Tempo = other.Tempo;
-        PartyIntervalSeconds = other.PartyIntervalSeconds;
         LastPresetFolder = other.LastPresetFolder;
         EditorScale = other.EditorScale;
         MidiMap = other.MidiMap;
