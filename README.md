@@ -10,6 +10,8 @@ instrument) and **Noumenon FX** (the same instrument as an effect, with an audio
 optionally the same two as **VST2** plugins. Made by **Garda**
 ([gardaofficial.bandcamp.com](https://gardaofficial.bandcamp.com/)); written in C# on .NET 10.
 
+Program demo on [Youtube](https://www.youtube.com/watch?v=bGsKDx8jLeQ)
+
 ![The Noumenon panel](docs/editor.png)
 
 ---
