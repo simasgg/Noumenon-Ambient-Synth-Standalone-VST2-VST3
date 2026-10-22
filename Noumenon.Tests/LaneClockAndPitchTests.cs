@@ -112,6 +112,46 @@ public class LaneClockAndPitchTests
     }
 
     [Fact]
+    public void With_Midi_On_The_Fader_And_The_Notes_Take_Turns()
+    {
+        var engine = Make();
+        engine.Parameters.Set(ParamId.P1Midi, true);
+        engine.Midi.NoteOn(64, 100);
+        Render(engine, 0.01);
+        Assert.Equal(4f, engine.P1);    // the note
+        Assert.True(engine.P1PlaysNote);
+
+        engine.Parameters.Set(ParamId.P1Value, -7f);
+        Render(engine, 0.01);
+        Assert.Equal(-7f, engine.P1);   // moving the fader takes P1 back
+        Assert.False(engine.P1PlaysNote);
+
+        engine.Midi.NoteOn(62, 100);
+        Render(engine, 0.01);
+        Assert.Equal(2f, engine.P1);    // until the next note
+        Assert.True(engine.P1PlaysNote);
+        Assert.False(engine.P2PlaysNote);
+    }
+
+    [Fact]
+    public void Midi_On_Keeps_The_Fader_Until_A_Note_And_Bends_It()
+    {
+        var engine = Make();
+        engine.Parameters.Set(ParamId.P1Value, 5f);
+        engine.Midi.NoteOn(64, 100);    // played while P1 ignores MIDI
+        Render(engine, 0.01);
+        Assert.Equal(5f, engine.P1);
+
+        engine.Parameters.Set(ParamId.P1Midi, true);
+        Render(engine, 0.01);
+        Assert.Equal(5f, engine.P1);    // no jump to the note played before
+
+        engine.Midi.PitchBend(16383);
+        Render(engine, 0.01);
+        Assert.InRange(engine.P1, 6.99f, 7.01f);   // the fader, bent by the range (2)
+    }
+
+    [Fact]
     public void Glide_Takes_Its_Time()
     {
         var engine = Make();

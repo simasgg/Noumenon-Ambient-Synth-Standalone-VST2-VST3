@@ -469,7 +469,7 @@ internal sealed class MainForm : Form, IEditorHost
 
         var help = new ToolStripMenuItem("&Help");
         help.DropDownItems.Add(Item("&Keys…", Keys.F1, ShowKeys));
-        help.DropDownItems.Add(Item("&About", Keys.None, () => MessageBox.Show(this, $"Noumenon {Application.ProductVersion}\nA generative ambient loop instrument.\n\nSettings: {HostSettings.FilePath}\nFactory presets: {library.FactoryFolder ?? "(not found)"}\nUser presets: {library.UserFolder}", "About Noumenon")));
+        help.DropDownItems.Add(Item("&About", Keys.None, ShowAbout));
 
         menu.Items.AddRange([file, audio, midiMenu, transport, presets, view, help]);
     }
@@ -877,12 +877,16 @@ internal sealed class MainForm : Form, IEditorHost
         if (forceDialog || path is null || isFactory)
         {
             Directory.CreateDirectory(library.UserFolder);
-            using var dialog = new SaveFileDialog { Filter = $"Noumenon presets|*{PresetIo.Extension}", InitialDirectory = settings.LastPresetFolder ?? library.UserFolder, FileName = currentPresetName + PresetIo.Extension };
+            using var dialog = new SaveFileDialog { Filter = $"Noumenon presets|*{PresetIo.Extension}", InitialDirectory = library.SaveFolder(settings.LastPresetFolder), FileName = currentPresetName + PresetIo.Extension };
             if (dialog.ShowDialog(this) != DialogResult.OK)
                 return;
 
             path = dialog.FileName;
             settings.LastPresetFolder = Path.GetDirectoryName(path);
+        }
+        else if (!OverwritePrompt.Confirm(this, path))
+        {
+            return;
         }
 
         var name = Path.GetFileNameWithoutExtension(path);
@@ -954,6 +958,25 @@ internal sealed class MainForm : Form, IEditorHost
             "Lanes: click the small display under a fader to arm it, drag the fader to record, release; the button above the display plays the loop.\n\n" +
             "Right-click any fader, knob or number: its lane, Learn MIDI CC (then move a controller), Modulate with a source (a free matrix slot at a quarter depth).",
             "Keys");
+    }
+
+    private void ShowAbout()
+    {
+        var page = new TaskDialogPage
+        {
+            Caption = "About Noumenon",
+            Heading = $"Noumenon {Application.ProductVersion}",
+            Text = $"A generative ambient loop instrument.\n\nCreated by {Credit.Author}\n<a href=\"{Credit.Url}\">{Credit.UrlText}</a>",
+            Footnote = new TaskDialogFootnote($"Settings: {HostSettings.FilePath}\nFactory presets: {library.FactoryFolder ?? "(not found)"}\nUser presets: {library.UserFolder}"),
+            EnableLinks = true,
+            Buttons = { TaskDialogButton.OK },
+        };
+        page.LinkClicked += (_, _) =>
+        {
+            if (!Credit.OpenPage())
+                Notice("Could not open " + Credit.Url);
+        };
+        TaskDialog.ShowDialog(this, page);
     }
 
     private void UpdateTitle() => Text = $"Noumenon — {currentPresetName}";

@@ -7,7 +7,8 @@ record or roll at random. It sounds the moment it opens.
 
 Noumenon is a **standalone application**, a **VST3 plugin** holding both **Noumenon** (an
 instrument) and **Noumenon FX** (the same instrument as an effect, with an audio input), and
-optionally the same two as **VST2** plugins. Written in C# on .NET 10.
+optionally the same two as **VST2** plugins. Made by **Garda**
+([gardaofficial.bandcamp.com](https://gardaofficial.bandcamp.com/)); written in C# on .NET 10.
 
 ![The Noumenon panel](docs/editor.png)
 
@@ -45,6 +46,9 @@ internet connection.
 
 To remove it: **Settings → Apps → Noumenon → Uninstall**. Your own presets, samples and
 recordings in Documents are left alone.
+
+To update, run the new version's installer over the old one. Factory presets a release drops are
+removed once it has installed; your own presets and samples stay where they are.
 
 **Portable zips** (`Noumenon-<version>-VST3-portable.zip`, `-VST2-portable.zip`,
 `-Standalone-portable.zip`) hold the same files for a manual install; each carries its own copy of
@@ -90,8 +94,13 @@ Three things make Noumenon a loop generator rather than a synth:
    glide to another preset.
 
 The panel has five pages — **MAIN**, **SAMPLE**, **MOD**, **CHORDS**, **POST** — and a top bar with
-the preset menu (◀ ▶ step through it), **SAVE**, **UNDO**/**REDO**, the page buttons, the panel
-size (**×1 / ×1.5 / ×2**) and a status line.
+the preset menu (◀ ▶ step through it), **SAVE** (a factory preset or a new patch asks for a name
+first; one of your own presets asks before it is overwritten), **UNDO**/**REDO**, the page
+buttons, the panel size (**×1 / ×1.5 / ×2**) and a status line.
+
+On every knob and fader, the pointer or white cap is **your setting** and the coloured arc or bar
+is **what plays**: your setting plus any modulation from the matrix. While a lane or a MIDI note
+plays a control instead of your setting, the cap follows it.
 
 ### MAIN — the signal as it flows
 
@@ -106,8 +115,10 @@ mark for every oscillator — drag a mark sideways to retune that slot, up or do
 **ALL** (route every slot of the section to the fader) and **FINE** (the fader moves those slots
 in cents instead of semitones).
 
-**P1 and P2** (the strip below). The fader value in semitones, **MIDI** (follow the last note
-played, plus pitch bend times **BEND**), and **GLIDE**.
+**P1 and P2** (the strip below). The fader value in semitones; **MIDI**, which lets the keys play
+the fader — a note takes it over, moving the slider takes it back, whichever came last — with pitch
+bend times **BEND** on top; and **GLIDE**, the time a new pitch takes to arrive. The readout beside
+the fader is the pitch as you hear it.
 
 > **Tip — MIDI on one P fader or on both?** By default every slot is routed to both faders, so
 > switching MIDI on for **P1** alone makes all the oscillators follow your keys in tune. Turn MIDI
@@ -149,7 +160,8 @@ lane at once. The overview shows each loop as a line with its playhead.
 2. **Drag the fader**: everything you do is recorded, and the strip fills while it records.
 3. **Let go**: the loop is stored and the lane stays armed — drag again to record a new take.
 4. **Click the small button** beside the strip to switch between the loop (lit: *Automated*) and
-   the plain fader (*Static*). The strip then shows where the loop is playing.
+   the plain fader (*Static*). The strip then shows where the loop is playing, and the fader's
+   cap moves with it.
 
 Any control's **right-click** menu has the same lane actions, plus **Learn MIDI CC**, **Modulate
 with …** (into the first free matrix slot) and **Reset to default**.
@@ -323,6 +335,8 @@ signs the binaries and the installer. The version is set once, in `Directory.Bui
 ---
 
 ## Credits
+
+Noumenon is made by **Garda** — [gardaofficial.bandcamp.com](https://gardaofficial.bandcamp.com/).
 
 - Inspired by **Metaphysical Function** (Native Instruments, Reaktor, 2004 — Mike Daliot and
   Phirol) and its 2016 extension **Metaphysical Fabrications** (contortDistort). Noumenon is an

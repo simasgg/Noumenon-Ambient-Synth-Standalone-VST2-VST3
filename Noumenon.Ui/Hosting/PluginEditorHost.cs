@@ -140,6 +140,10 @@ public abstract partial class PluginEditorHost : IEditorHost
 
             path = dialog.FileName;
         }
+        else if (!OverwritePrompt.Confirm(control, path))
+        {
+            return;
+        }
 
         var name = Path.GetFileNameWithoutExtension(path);
         try

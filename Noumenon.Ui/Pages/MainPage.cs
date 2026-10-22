@@ -308,9 +308,10 @@ internal static class MainPage
         var inv = CultureInfo.InvariantCulture;
         var t = BottomTop + 84;
         w.Add(new FrameWidget(752, t, 244, 90, null, inset: true));
-        w.Add(new LabelWidget("NOUMENON", 752, t + 12, 244, 24, EditorTheme.Center, EditorTheme.BadgeFont));
-        w.Add(new LabelWidget("generative ambient loops", 752, t + 38, 244, 12, EditorTheme.Center, EditorTheme.SmallFont, EditorTheme.TextDim));
-        w.Add(new DisplayTextWidget(() => PlayState(engine, inv), 764, t + 60, 220, 14, tooltip: "The play state: PLAYING while a DAW's transport runs, SYNC when Host Sync follows a tempo, FREE RUN otherwise; MUTED / FADING", font: EditorTheme.SmallValueFont));
+        w.Add(new LabelWidget("NOUMENON", 752, t + 8, 244, 24, EditorTheme.Center, EditorTheme.BadgeFont));
+        w.Add(new LabelWidget("generative ambient loops", 752, t + 32, 244, 12, EditorTheme.Center, EditorTheme.SmallFont, EditorTheme.TextDim));
+        w.Add(new LinkWidget("created by " + Credit.Author, 814, t + 45, 120, 12, () => Credit.OpenPage(), $"{Credit.UrlText} (click to open)"));
+        w.Add(new DisplayTextWidget(() => PlayState(engine, inv), 764, t + 64, 220, 14, tooltip: "The play state: PLAYING while a DAW's transport runs, SYNC when Host Sync follows a tempo, FREE RUN otherwise; MUTED / FADING", font: EditorTheme.SmallValueFont));
     }
 
     // ---- Helpers ----

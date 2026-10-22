@@ -122,6 +122,49 @@ public sealed class DisplayTextWidget : Widget
     }
 }
 
+/// <summary>A line of text that opens something when clicked (the author's credit under the wordmark), lit while the mouse is over it.</summary>
+public sealed class LinkWidget : Widget
+{
+    private readonly string text;
+    private readonly Action open;
+    private readonly string? tooltip;
+    private readonly Font font;
+    private bool down;
+
+    public LinkWidget(string text, float x, float y, float width, float height, Action open, string? tooltip = null, Font? font = null)
+    {
+        this.text = text;
+        this.open = open;
+        this.tooltip = tooltip;
+        this.font = font ?? EditorTheme.SmallFont;
+        Bounds = new RectangleF(x, y, width, height);
+    }
+
+    public override string? Tooltip => tooltip;
+
+    public override void Draw(Graphics g) => EditorDraw.Text(g, text, Bounds, font, Hot || down ? EditorTheme.TextLight : EditorTheme.Accent, EditorTheme.Center);
+
+    public override void MouseDown(PointF p, MouseButtons button, int clicks)
+    {
+        if (button != MouseButtons.Left)
+            return;
+
+        down = true;
+        Invalidate();
+    }
+
+    public override void MouseUp(PointF p, MouseButtons button)
+    {
+        if (!down)
+            return;
+
+        down = false;
+        Invalidate();
+        if (Bounds.Contains(p))
+            open();
+    }
+}
+
 /// <summary>An indicator LED driven by a function, with an optional caption to its right.</summary>
 public sealed class LedWidget : Widget
 {

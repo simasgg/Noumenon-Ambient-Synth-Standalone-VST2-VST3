@@ -4,13 +4,14 @@ namespace Noumenon.Engine.Presets;
 /// The two preset folders every host browses: the factory bank — the <c>presets</c> folder of the
 /// factory content (<see cref="FactoryContent"/>: next to the executable or plugin, up the tree
 /// from a build output, or where the installer put it) — and the user's own bank in their
-/// Documents folder, where Save As defaults to, shared by the standalone and the plugins so a
-/// snapshot saved in one is in the other's list. Either bank may have subfolders, which are
-/// families (the factory bank's Drone, Pad, Texture, …): every preset knows its family, and each
-/// bank lists its root first, then family by family. A bare name on the command line, or a
-/// <c>Family/Name</c>, is looked up in both banks. A host that is not the application (a plugin
-/// inside a DAW, whose base directory is the DAW's) passes the folder its assembly was loaded from
-/// as a starting point.
+/// Documents folder, where Save As starts unless the player last used a folder of their own
+/// (never the factory bank: it belongs to the installation, read-only under Program Files),
+/// shared by the standalone and the plugins so a snapshot saved in one is in the other's list.
+/// Either bank may have subfolders, which are families (the factory bank's Drone, Pad, Texture,
+/// …): every preset knows its family, and each bank lists its root first, then family by family.
+/// A bare name on the command line, or a <c>Family/Name</c>, is looked up in both banks. A host
+/// that is not the application (a plugin inside a DAW, whose base directory is the DAW's) passes
+/// the folder its assembly was loaded from as a starting point.
 /// </summary>
 public sealed class PresetLibrary
 {
@@ -56,6 +57,8 @@ public sealed class PresetLibrary
     }
 
     public bool IsFactory(string? path) => path is not null && FactoryFolder is not null && path.StartsWith(FactoryFolder, StringComparison.OrdinalIgnoreCase);
+
+    public string SaveFolder(string? lastFolder) => lastFolder is not null && !IsFactory(lastFolder) ? lastFolder : UserFolder;
 
     /// <summary>A path as given, or a preset name (or <c>Family/Name</c>) looked up in the factory bank then the user bank; null when neither has it.</summary>
     public string? Find(string nameOrPath)

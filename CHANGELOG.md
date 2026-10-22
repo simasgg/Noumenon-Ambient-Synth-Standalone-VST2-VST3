@@ -5,6 +5,46 @@ sets. `build-release.ps1` copies the section of the version it builds into
 `dist/Noumenon-<version>/RELEASE-NOTES-<version>.md`, with the download sizes and SHA-256 hashes
 appended, for the GitHub release page. Commits are titled `#<version> <summary>`.
 
+## 0.5.2 — 2026-10-22
+
+Installing over an earlier version now removes the presets a release dropped, SAVE asks before it
+writes over one of your presets, P1 and P2 keep their sliders with MIDI on, and the panel and the
+About box credit Garda.
+
+### Changed
+
+- **SAVE asks first** when it would write over one of your own presets: *Save over “…”?*, with No
+  as the default answer. That is the panel's SAVE button, in the standalone and both plugins, and
+  the standalone's Ctrl+S. Saving under a new name asks nothing more than the Save dialog does.
+- The wordmark on the MAIN page, in the standalone and both plugins, says Noumenon was
+  **created by Garda**: click it to open
+  [gardaofficial.bandcamp.com](https://gardaofficial.bandcamp.com/). The standalone's
+  **Help → About** says the same, with the link.
+- Release tooling: the sandboxed install test plants what an earlier install can leave behind —
+  dropped presets, a portable copy's content, a preset of the player's own — and checks that only
+  the first two go and that the installed content is exactly the release's; it uninstalls the
+  sandbox even when a check fails.
+
+### Fixed
+
+- **Installing over an earlier version** removes the factory presets a release dropped — so far
+  *Living Faders* and the FX family — once the install has succeeded. Only those files go:
+  anything of your own in the installation folder stays. (0.5.1's notes promised this, but its
+  installer did not do it.)
+- A **portable copy** unpacked where the installer puts the plugins no longer hides the installed
+  factory bank: the installer removes the `content` folder it left beside them, so the plugins
+  list the same presets as the standalone.
+- The standalone's **Save** dialog starts in your own folder, `Documents\Noumenon\Presets`, instead
+  of the factory folder after *File → Open* on a factory preset.
+- **P1 and P2 with MIDI on**: once a note had been played, the slider did nothing until MIDI was
+  switched off. Now whichever moved last sets the pitch: a note takes the P fader over, and moving
+  the slider takes it back until the next note. The bend wheel bends P whenever MIDI is on, even
+  before the first note, and switching MIDI on no longer jumps to a note played earlier.
+- Faders redraw their bar whenever what they play moves (modulation, MIDI, bend, glide), not
+  only when the fader itself is moved, so the bar always shows where the value really is. While
+  something else plays a fader — its lane, or a MIDI note on P1 or P2 — the white cap follows it
+  too, and grabbing the cap there takes over from that point.
+
 ## 0.5.1 — 2026-10-22
 
 A sample library on the SAMPLE page, five new drones and a fix for modulation-matrix slots aimed

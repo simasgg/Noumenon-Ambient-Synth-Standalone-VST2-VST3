@@ -137,6 +137,9 @@ public sealed class ParamBinding
 
     public bool LanePlaying => Lane is { IsPlaying: true };
 
+    /// <summary>True while something plays the parameter instead of its set value: its lane, or for P1 and P2 a MIDI note.</summary>
+    public bool Replaced => LanePlaying || (Id == ParamId.P1Value && Engine.P1PlaysNote) || (Id == ParamId.P2Value && Engine.P2PlaysNote);
+
     public string ValueText => Info.Format(Value);
 
     public string ResolvedText => Info.Format(Resolved);

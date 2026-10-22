@@ -7,16 +7,21 @@
     1. Builds the solution for x64 Release - the build lays out the two VST2 deploy folders and
        the VST3 bundle - and publishes the standalone (framework-dependent).
     2. Runs the three test suites and the native plugin load test (skip with -SkipTests).
-    3. Downloads the bundled prerequisites into installer\redist (cached; gitignored).
-    4. Compiles installer\Noumenon.iss with Inno Setup 6.
-    5. Packs the portable zips (VST3, VST2, standalone), each with its own copy of the factory
+    3. With -SignCommand, signs our binaries (the installer is signed as ISCC writes it).
+    4. Downloads the bundled prerequisites into installer\redist (cached; gitignored).
+    5. Compiles installer\Noumenon.iss with Inno Setup 6.
+    6. Packs the portable zips (VST3, VST2, standalone), each with its own copy of the factory
        content, for users who install by hand.
-    6. Writes RELEASE-NOTES-<version>.md from the version's section of CHANGELOG.md, with the
+    7. Writes RELEASE-NOTES-<version>.md from the version's section of CHANGELOG.md, with the
        file sizes and SHA-256 hashes appended.
-    7. With -TestInstall, compiles a sandboxed variant of the installer, installs it silently
-       into a temporary folder (no elevation, nothing outside that folder but an HKCU value),
-       checks the layout, loads the installed plugins with tools\Test-PluginLoad.ps1, uninstalls
-       and checks that nothing is left.
+    8. With -TestInstall, compiles a sandboxed variant of the installer and installs it silently
+       into a temporary folder (no elevation, nothing outside that folder but an HKCU value) over
+       what an earlier install can leave there: presets a release dropped and a portable copy's
+       content in the plugin folders, which must go, and a preset of the player's own in the
+       factory folder, which must stay. Checks the layout and that the installed factory content
+       is exactly content\, loads the installed plugins with tools\Test-PluginLoad.ps1, asks each
+       one's engine where its factory content is, uninstalls (also when a check failed) and
+       checks that only the player's preset is left.
 
     Output lands in dist\Noumenon-<version>\, one folder per release, so earlier releases stay
     as they were. The version comes from <Version> in Directory.Build.props, the single place it
@@ -456,92 +461,132 @@ if ($TestInstall)
     New-Item -ItemType Directory -Path $sandboxOut -Force | Out-Null
     Invoke-Checked 'ISCC (sandbox)' { & $iscc '/Q' @defines "/DSandbox=$sandbox" "/DOutputDir=$sandboxOut" '/FNoumenon-sandbox-setup' $issFile }
 
-    $components = 'standalone,vst3,content'
-    if ($includeVst2)
-    {
-        $components += ',vst2\instrument,vst2\effect'
-    }
-    $log = Join-Path $sandbox 'install.log'
-    $process = Start-Process (Join-Path $sandboxOut 'Noumenon-sandbox-setup.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$log`"", "/COMPONENTS=`"$components`"" -Wait -PassThru
-    if ($process.ExitCode -ne 0)
-    {
-        throw "The sandboxed install failed with exit code $($process.ExitCode); see $log."
-    }
-
     $app = Join-Path $sandbox 'Program Files\Noumenon'
+    $installedContent = Join-Path $app 'Content'
     $bundle = Join-Path $sandbox 'Common Files\VST3\Noumenon.vst3'
+    $uninstaller = Join-Path $app 'unins000.exe'
+    $components = 'standalone,vst3,content'
     $expected = @(
         (Join-Path $app 'Noumenon.Standalone.exe'),
         (Join-Path $app 'Noumenon.ico'),
-        (Join-Path $app 'unins000.exe'),
-        (Join-Path $app 'Content\presets'),
+        $uninstaller,
         (Join-Path $app 'Licenses\THIRD-PARTY-NOTICES.txt'),
         (Join-Path $bundle 'Contents\x86_64-win\Noumenon.vst3'),
         (Join-Path $bundle 'Contents\x86_64-win\Noumenon.dll')
     )
     $plugins = @($bundle)
-    if ($includeVst2)
-    {
-        $expected += (Join-Path $sandbox 'Common Files\VST2\Noumenon\Noumenon.Vst2.dll'), (Join-Path $sandbox 'Common Files\VST2\Noumenon FX\NoumenonFx.Vst2.dll')
-        $plugins += (Join-Path $sandbox 'Common Files\VST2\Noumenon\Noumenon.Vst2.dll'), (Join-Path $sandbox 'Common Files\VST2\Noumenon FX\NoumenonFx.Vst2.dll')
-    }
-    foreach ($path in $expected)
-    {
-        Assert-File $path 'An installed file'
-    }
-    if (Test-Path (Join-Path $bundle 'Contents\x86_64-win\content'))
-    {
-        throw 'The installed VST3 bundle carries its own content; it should read the shared copy.'
-    }
-    $registered = (Get-ItemProperty 'HKCU:\Software\Noumenon' -ErrorAction SilentlyContinue).ContentFolder
-    if ($registered -ne (Join-Path $app 'Content'))
-    {
-        throw "The content folder is registered as '$registered', expected '$(Join-Path $app 'Content')'."
-    }
-    $installedFiles = Get-ChildItem $sandbox -Recurse -File | Where-Object { $_.FullName -notlike "$sandboxOut*" -and $_.FullName -ne $log }
-    Write-Host ("    installed {0} files, {1}; content registered at {2}" -f $installedFiles.Count, (Format-Size ($installedFiles | Measure-Object -Property Length -Sum).Sum), $registered)
-
-    Invoke-Checked 'Test-PluginLoad (installed)' { & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tools\Test-PluginLoad.ps1') -Dll ($plugins -join ';') }
-
-    # Each installed plugin's own engine, asked where its factory content is: with no content
-    # beside it, the answer must be the shared copy the registry names. Run from the sandbox, so
-    # the working directory cannot point at the repository's content.
-    $factoryTool = Join-Path $root 'Noumenon.Factory\bin\x64\Release\net10.0-windows\Noumenon.Factory.dll'
     $pluginFolders = @(Join-Path $bundle 'Contents\x86_64-win')
     if ($includeVst2)
     {
-        $pluginFolders += (Join-Path $sandbox 'Common Files\VST2\Noumenon'), (Join-Path $sandbox 'Common Files\VST2\Noumenon FX')
+        $components += ',vst2\instrument,vst2\effect'
+        $vst2 = (Join-Path $sandbox 'Common Files\VST2\Noumenon\Noumenon.Vst2.dll'), (Join-Path $sandbox 'Common Files\VST2\Noumenon FX\NoumenonFx.Vst2.dll')
+        $expected += $vst2
+        $plugins += $vst2
+        $pluginFolders += @($vst2 | ForEach-Object { Split-Path $_ })
     }
-    Push-Location $sandbox
+
+    # What an earlier install can leave where this one goes: presets a release dropped and a
+    # portable copy's content in the plugin folders, which the install must delete, and a preset
+    # of the player's own in the factory folder, which nothing may delete, the uninstall included.
+    $dropped = @((Join-Path $installedContent 'presets\Drone\Living Faders.noumenon'), (Join-Path $installedContent 'presets\FX\Input Rust.noumenon'))
+    $portable = @($pluginFolders | ForEach-Object { Join-Path $_ 'content' })
+    $mine = Join-Path $installedContent 'presets\Drone\My Drone.noumenon'
+    foreach ($file in @($dropped) + @($portable | ForEach-Object { Join-Path $_ 'presets\Init.noumenon' }) + $mine)
+    {
+        New-Item -ItemType Directory -Path (Split-Path $file) -Force | Out-Null
+        Copy-Item -LiteralPath (Join-Path $contentDir 'presets\Init.noumenon') -Destination $file
+    }
+
+    # The uninstaller runs whatever fails here: a sandbox left registered in HKCU, which
+    # FactoryContent reads before HKLM, would hand every installed plugin on this machine its
+    # factory content.
+    $log = Join-Path $sandboxOut 'install.log'
     try
     {
-        foreach ($folder in $pluginFolders)
+        $process = Start-Process (Join-Path $sandboxOut 'Noumenon-sandbox-setup.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$log`"", "/COMPONENTS=`"$components`"" -Wait -PassThru
+        if ($process.ExitCode -ne 0)
         {
-            Invoke-Checked "Factory content seen from $folder" { & $dotnet $factoryTool locate $folder --expect (Join-Path $app 'Content') }
+            throw "The sandboxed install failed with exit code $($process.ExitCode); see $log."
+        }
+        foreach ($path in $expected)
+        {
+            Assert-File $path 'An installed file'
+        }
+
+        # The installed factory content is exactly this release's, beside the player's preset:
+        # the dropped presets went, and nothing the release ships did.
+        $shipped = @(Get-ChildItem $contentDir -Recurse -File | ForEach-Object { $_.FullName.Substring($contentDir.Length + 1) })
+        $found = @(Get-ChildItem $installedContent -Recurse -File | Where-Object { $_.FullName -ne $mine } | ForEach-Object { $_.FullName.Substring($installedContent.Length + 1) })
+        $missing = @($shipped | Where-Object { $found -notcontains $_ })
+        $extra = @($found | Where-Object { $shipped -notcontains $_ })
+        if ($missing -or $extra)
+        {
+            throw "The installed factory content is not this release's. Missing: $($missing -join ', '). Left over: $($extra -join ', ')."
+        }
+        if (Test-Path (Join-Path $installedContent 'presets\FX'))
+        {
+            throw 'The install kept the folder of the dropped FX family.'
+        }
+        Assert-File $mine 'The player''s own preset in the factory folder'
+        foreach ($folder in $portable)
+        {
+            if (Test-Path $folder)
+            {
+                throw "An installed plugin folder still carries a content folder; the plugins should read the shared copy: $folder"
+            }
+        }
+        $registered = (Get-ItemProperty 'HKCU:\Software\Noumenon' -ErrorAction SilentlyContinue).ContentFolder
+        if ($registered -ne $installedContent)
+        {
+            throw "The content folder is registered as '$registered', expected '$installedContent'."
+        }
+        $installedFiles = Get-ChildItem $sandbox -Recurse -File | Where-Object { $_.FullName -notlike "$sandboxOut*" -and $_.FullName -ne $mine }
+        Write-Host ("    installed {0} files, {1}; content registered at {2}" -f $installedFiles.Count, (Format-Size ($installedFiles | Measure-Object -Property Length -Sum).Sum), $registered)
+        Write-Host '    the dropped presets and the portable content went; the player''s own preset stayed'
+
+        Invoke-Checked 'Test-PluginLoad (installed)' { & "$env:WINDIR\System32\WindowsPowerShell\v1.0\powershell.exe" -NoProfile -ExecutionPolicy Bypass -File (Join-Path $root 'tools\Test-PluginLoad.ps1') -Dll ($plugins -join ';') }
+
+        # Each installed plugin's own engine, asked where its factory content is: with no content
+        # beside it, the answer must be the shared copy the registry names. Run from the sandbox,
+        # so the working directory cannot point at the repository's content.
+        $factoryTool = Join-Path $root 'Noumenon.Factory\bin\x64\Release\net10.0-windows\Noumenon.Factory.dll'
+        Push-Location $sandbox
+        try
+        {
+            foreach ($folder in $pluginFolders)
+            {
+                Invoke-Checked "Factory content seen from $folder" { & $dotnet $factoryTool locate $folder --expect $installedContent }
+            }
+        }
+        finally
+        {
+            Pop-Location
         }
     }
     finally
     {
-        Pop-Location
+        # The uninstaller copies itself to %TEMP% and returns at once; wait for the folder to go.
+        if (Test-Path $uninstaller)
+        {
+            Start-Process $uninstaller -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
+            $deadline = (Get-Date).AddSeconds(60)
+            while ((Test-Path $uninstaller) -and (Get-Date) -lt $deadline)
+            {
+                Start-Sleep -Milliseconds 500
+            }
+        }
     }
-
-    # The uninstaller copies itself to %TEMP% and returns at once; wait for the folder to go.
-    Start-Process (Join-Path $app 'unins000.exe') -ArgumentList '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART' -Wait
-    $deadline = (Get-Date).AddSeconds(60)
-    while ((Test-Path (Join-Path $app 'unins000.exe')) -and (Get-Date) -lt $deadline)
-    {
-        Start-Sleep -Milliseconds 500
-    }
-    $left = Get-ChildItem $sandbox -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notlike "$sandboxOut*" -and $_.FullName -ne $log }
+    $left = Get-ChildItem $sandbox -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.FullName -notlike "$sandboxOut*" -and $_.FullName -ne $mine }
     if ($left)
     {
         throw "The uninstaller left files behind: $(($left | Select-Object -First 5 | ForEach-Object { $_.FullName }) -join ', ')"
     }
+    Assert-File $mine 'After the uninstall, the player''s own preset'
     if (Test-Path 'HKCU:\Software\Noumenon')
     {
         throw 'The uninstaller left HKCU:\Software\Noumenon behind.'
     }
-    Write-Host '    uninstalled cleanly'
+    Write-Host '    uninstalled cleanly; the player''s own preset is still there'
     Remove-Item $sandbox -Recurse -Force -ErrorAction SilentlyContinue
 }
 

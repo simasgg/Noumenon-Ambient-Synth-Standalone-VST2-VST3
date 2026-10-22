@@ -117,6 +117,8 @@ public sealed class NoumenonEngine
     private float outputPeakRight;
     private float heardP1;
     private float heardP2;
+    private bool p1PlaysNote;
+    private bool p2PlaysNote;
 
     public NoumenonEngine()
     {
@@ -168,6 +170,11 @@ public sealed class NoumenonEngine
     public float P1 => Volatile.Read(ref heardP1);
 
     public float P2 => Volatile.Read(ref heardP2);
+
+    /// <summary>True while P1 plays the last MIDI note instead of its fader: its MIDI button is on and a note came after the fader last moved.</summary>
+    public bool P1PlaysNote => Volatile.Read(ref p1PlaysNote);
+
+    public bool P2PlaysNote => Volatile.Read(ref p2PlaysNote);
 
     public float EnvelopeFollowerValue => follower.Value;
 
@@ -611,7 +618,8 @@ public sealed class NoumenonEngine
 
         // MIDI (learned controllers write their parameters first), the gate, and the triggers the engine cannot run itself.
         var gate = Interlocked.Exchange(ref gatePending, 0) != 0;
-        if (Midi.Drain())
+        var noteArrived = Midi.Drain();
+        if (noteArrived)
             gate = true;
 
         MidiMap.Apply(Midi, bank);
@@ -660,8 +668,8 @@ public sealed class NoumenonEngine
         }
 
         // The pitch layer.
-        pitch1.Tick(dt, R(ParamId.P1Value), RB(ParamId.P1Midi), Midi, R(ParamId.P1BendRange), R(ParamId.P1Glide), scale, root);
-        pitch2.Tick(dt, R(ParamId.P2Value), RB(ParamId.P2Midi), Midi, R(ParamId.P2BendRange), R(ParamId.P2Glide), scale, root);
+        pitch1.Tick(dt, bank.Get(ParamId.P1Value), R(ParamId.P1Value), RB(ParamId.P1Midi), noteArrived, Midi, R(ParamId.P1BendRange), R(ParamId.P1Glide), scale, root);
+        pitch2.Tick(dt, bank.Get(ParamId.P2Value), R(ParamId.P2Value), RB(ParamId.P2Midi), noteArrived, Midi, R(ParamId.P2BendRange), R(ParamId.P2Glide), scale, root);
         var p1 = pitch1.Value;
         var p2 = pitch2.Value;
         resolved[(int)ParamId.P1Value] = p1;
@@ -675,6 +683,8 @@ public sealed class NoumenonEngine
         p2 = R(ParamId.P2Value);
         Volatile.Write(ref heardP1, p1);
         Volatile.Write(ref heardP2, p2);
+        Volatile.Write(ref p1PlaysNote, pitch1.FollowingNote);
+        Volatile.Write(ref p2PlaysNote, pitch2.FollowingNote);
 
         gateEnvelope.SetFreeRun(RI(ParamId.PlayMode) == 0);
         gateEnvelope.SetTimes(R(ParamId.GateAttack), R(ParamId.GateRelease));

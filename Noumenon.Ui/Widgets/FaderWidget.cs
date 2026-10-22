@@ -10,7 +10,8 @@ namespace Noumenon.Ui.Widgets;
 /// replaces the fader) and the position display, which is clicked to arm — the next drag then
 /// records, the display fills red while it does, and shows the loop position in green while it
 /// plays. Dragging sets the lane's Pressed flag so the engine records exactly while the cap is
-/// held; while a lane plays and the cap is not held, the cap follows the resolved value. The
+/// held; while something else plays the fader (its lane, or a MIDI note on P1 or P2) and the cap
+/// is not held, the cap shows what plays, and grabbing it there takes over from that point. The
 /// wheel steps, a double-click restores the default, a right-click opens the control menu (lane,
 /// MIDI learn, modulation). Like a knob it marks a matrix route (an accent dot) and a bound MIDI
 /// controller (a light one) at the start of its slot, and rings the slot amber while it learns.
@@ -35,6 +36,7 @@ public sealed class FaderWidget : Widget
     private bool dragging;
     private float grabOffset;
     private float shownValue = float.NaN;
+    private float shownResolved = float.NaN;
     private int shownLane = -1;
     private int shownLinks = -1;
 
@@ -92,7 +94,7 @@ public sealed class FaderWidget : Widget
         if (label is not null && vertical)
             EditorDraw.Text(g, label, new RectangleF(Bounds.X - 10f, Bounds.Y, Bounds.Width + 20f, LabelHeight), EditorTheme.LabelFont, EditorTheme.Text, EditorTheme.Center);
 
-        EditorDraw.FaderBar(g, Slot, binding.Normalized, binding.ResolvedNormalized, binding.IsBipolar, vertical, Hot || dragging);
+        EditorDraw.FaderBar(g, Slot, Displayed, binding.ResolvedNormalized, binding.IsBipolar, vertical, Hot || dragging);
         DrawLinks(g, binding.Links);
 
         var lane = binding.Lane;
@@ -131,6 +133,7 @@ public sealed class FaderWidget : Widget
     public override bool Update()
     {
         var value = Displayed;
+        var resolved = binding.ResolvedNormalized;
         var laneState = 0;
         if (binding.Lane is { } lane)
         {
@@ -139,10 +142,11 @@ public sealed class FaderWidget : Widget
         }
 
         var links = binding.Links;
-        if (value == shownValue && laneState == shownLane && links == shownLinks)
+        if (value == shownValue && resolved == shownResolved && laneState == shownLane && links == shownLinks)
             return false;
 
         shownValue = value;
+        shownResolved = resolved;
         shownLane = laneState;
         shownLinks = links;
 
@@ -202,10 +206,13 @@ public sealed class FaderWidget : Widget
             return;
         }
 
-        var cap = CapRect(binding.Normalized);
+        var shown = Displayed;
+        var cap = CapRect(shown);
         if (cap.Contains(p))
         {
             grabOffset = vertical ? cap.Y + cap.Height / 2f - p.Y : cap.X + cap.Width / 2f - p.X;
+            if (binding.Replaced)
+                binding.Normalized = shown;
         }
         else
         {
@@ -247,7 +254,7 @@ public sealed class FaderWidget : Widget
         Invalidate();
     }
 
-    private float Displayed => binding.LanePlaying && !dragging ? binding.ResolvedNormalized : binding.Normalized;
+    private float Displayed => binding.Replaced && !dragging ? binding.ResolvedNormalized : binding.Normalized;
 
     private RectangleF CapRect(float normalized)
     {

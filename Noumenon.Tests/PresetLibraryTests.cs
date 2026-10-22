@@ -57,6 +57,21 @@ public class PresetLibraryTests : IDisposable
         Assert.Null(PresetLibrary.Resolve("Pad/Basalt", root));
     }
 
+    [Fact]
+    public void Save_Starts_In_The_Folder_Used_Last_Unless_It_Is_The_Factory_Bank()
+    {
+        var factory = Path.Combine(root, "content", "presets");
+        Save(Path.Combine(factory, "Drone"), "Basalt");
+        var mine = Path.Combine(root, "Mine");
+
+        var library = new PresetLibrary(root);
+
+        Assert.Equal(library.UserFolder, library.SaveFolder(null));
+        Assert.Equal(library.UserFolder, library.SaveFolder(factory));
+        Assert.Equal(library.UserFolder, library.SaveFolder(Path.Combine(factory, "Drone")));
+        Assert.Equal(mine, library.SaveFolder(mine));
+    }
+
     private static void Save(string folder, string name)
     {
         Directory.CreateDirectory(folder);

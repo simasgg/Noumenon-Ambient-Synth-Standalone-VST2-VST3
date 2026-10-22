@@ -38,7 +38,7 @@
 #define AppUrl        "https://github.com/simasgg/Noumenon"
 
 #ifndef AppVersion
-  #define AppVersion  "0.5.1"
+  #define AppVersion  "0.5.2"
 #endif
 #ifndef StandaloneDir
   #define StandaloneDir "..\Noumenon.Standalone\bin\x64\Release\net10.0-windows\publish"
@@ -177,7 +177,8 @@ Source: "{#StandaloneDir}\*"; DestDir: "{app}"; Components: standalone; Excludes
     Flags: ignoreversion recursesubdirs createallsubdirs
 
 ; The factory content, once for every host. The deploy folders carry their own copy for the
-; portable zips; the installed plugins read this one instead (see [Registry]).
+; portable zips; the installed plugins read this one instead (see [Registry]). What a release
+; drops is deleted once the install has succeeded (DeleteDroppedContent in [Code]).
 Source: "{#ContentDir}\*"; DestDir: "{app}\Content"; Components: content; \
     Flags: ignoreversion recursesubdirs createallsubdirs
 
@@ -422,4 +423,68 @@ begin
   end;
 
   SetPreparingText('');
+end;
+
+{ ---- content an earlier release left behind -------------------------------------------- }
+
+procedure DeleteDroppedFile(const path: String);
+begin
+  if not FileExists(path) then
+    exit;
+
+  if DeleteFile(path) then
+    Log('Noumenon: deleted ' + path + ', which this release no longer ships')
+  else
+    Log('Noumenon: could not delete ' + path + ', which this release no longer ships');
+end;
+
+procedure DeletePortableContent(const folder: String);
+begin
+  if not DirExists(folder) then
+    exit;
+
+  if DelTree(folder, True, True, True) then
+    Log('Noumenon: deleted ' + folder + ', a portable copy''s content')
+  else
+    Log('Noumenon: could not delete ' + folder + ', a portable copy''s content');
+end;
+
+{ Deletes what an earlier release installed and this one no longer ships, once this release's
+  files are in place. Not [InstallDelete]: that runs before the files are copied, and a
+  cancelled or failed install never restores what it deleted. Only the files listed here go, so
+  nothing a player put in the folder is touched: add what a release drops, and take a path off
+  again if a later release ships it (build-release.ps1 -TestInstall fails when this deletes a
+  file the release ships). A content folder in the plugin folders goes whole: the installer
+  never puts one there, but a portable copy unpacked into the same place does, and the plugins
+  would read its stale bank before the installed one. }
+procedure DeleteDroppedContent();
+var
+  presets: String;
+begin
+  presets := ExpandConstant('{app}\Content\presets\');
+
+  { 0.5.1: Living Faders and the FX family. }
+  DeleteDroppedFile(presets + 'Drone\Living Faders.noumenon');
+  DeleteDroppedFile(presets + 'FX\Input Breath.noumenon');
+  DeleteDroppedFile(presets + 'FX\Input Cathedral.noumenon');
+  DeleteDroppedFile(presets + 'FX\Input Drift.noumenon');
+  DeleteDroppedFile(presets + 'FX\Input Halo.noumenon');
+  DeleteDroppedFile(presets + 'FX\Input Resonator.noumenon');
+  DeleteDroppedFile(presets + 'FX\Input Rust.noumenon');
+  RemoveDir(presets + 'FX');
+
+  if WizardIsComponentSelected('vst3') then
+    DeletePortableContent(ExpandConstant('{#CommonRoot}\VST3\Noumenon.vst3\Contents\x86_64-win\content'));
+#ifdef IncludeVst2
+  if WizardIsComponentSelected('vst2\instrument') then
+    DeletePortableContent(ExpandConstant('{#CommonRoot}\VST2\Noumenon\content'));
+  if WizardIsComponentSelected('vst2\effect') then
+    DeletePortableContent(ExpandConstant('{#CommonRoot}\VST2\Noumenon FX\content'));
+#endif
+end;
+
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+    DeleteDroppedContent();
 end;
